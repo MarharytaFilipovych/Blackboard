@@ -15,7 +15,7 @@ protected:
     string id;
     vector<pair<int, int>> coordinates;
 
-    string findID(vector<pair<int, int>>& coordinates)
+    string findID()
     {
         string id = "";
         for (int i = coordinates.size() - 1; i >= 0; i--)
@@ -32,44 +32,36 @@ protected:
         }
     }
 
-    void drawLine(vector<vector<char>>& grid, const pair<int,int>& xy1, const pair<int, int>& xy2)const
+    void drawLine(vector<vector<char>>& grid, const pair<int, int>& xy1, const pair<int, int>& xy2) const
     {
-        const int deltaX = xy2.first - xy1.first;
-        const int deltaY = xy2.second - xy1.second;
-        
-        int steps = abs(deltaX) > abs(deltaY) ? abs(deltaX) : abs(deltaY);
-        float Xinc = deltaX / (float)(steps);
-        float Yinc = deltaY / (float)(steps);
-        float x = xy1.first;
-        float y = xy1.second;
+        int x1 = xy1.first;
+        int y1 = xy1.second;
+        int x2 = xy2.first;
+        int y2 = xy2.second;
 
-        for (int i = 0; i < steps; i++)
-        {
-            int gridX = (int)(round(x));
-            int gridY = (int)(round(y));
+        int dx = abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
+        int dy = -abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
+        int err = dx + dy, e2;
 
-            PutStar(gridX, gridY, grid);
-            x += Xinc;
-            y += Yinc;
-        } 
-
-        int endX = (int)(round(xy2.first));
-        int endY = (int)(round(xy2.second));
-        PutStar(endX, endY, grid);
-
-       
+        while (true) {
+            PutStar(x1, y1, grid);  
+            if (x1 == x2 && y1 == y2) break;
+            e2 = 2 * err;
+            if (e2 >= dy) { err += dy; x1 += sx; } 
+            if (e2 <= dx) { err += dx; y1 += sy; } 
+        }
     }
 
 public:
 
-    Figure(const vector<pair<int,int>>& figure_coordinates, const string& figure_type) : coordinates(figure_coordinates), id(findID(coordinates)), type(figure_type)
+    Figure(const vector<pair<int,int>>& figure_coordinates, const string& figure_type) : coordinates(figure_coordinates), type(figure_type)
     {
 
     }
 
     virtual void draw(vector<vector<char>>& grid) const = 0; 
 
-    bool operator<(const Figure& other)
+    bool operator<(const Figure& other) const
     {
         return id < other.id;
     }
@@ -86,8 +78,10 @@ class Triangle : public Figure
         drawLine(grid, coordinates[2], coordinates[0]);
     }
 public:
-    Triangle(const vector<pair<int,int>>& figure_coordinates): Figure(figure_coordinates, "triangle") {}
-
+    Triangle(const vector<pair<int,int>>& figure_coordinates): Figure(figure_coordinates, "triangle")
+    {
+        id = findID();
+    }
     
 };
 
@@ -111,7 +105,7 @@ class Rectangular : public Figure
 public:
     Rectangular(const pair<int,int>& top_left_point, int w, int h) : Figure(vector<pair<int, int>>{top_left_point}, "rectangular"), width(w), height(h)
     {
-        id = findID(coordinates) + to_string(width) + to_string(height);
+        id = findID() + to_string(width) + to_string(height);
     }
 
 
@@ -121,18 +115,72 @@ public:
 class Circle : public Figure
 {
     int radius;
-
-
     
+    void plotCirclePoints(int xc, int yc, int x, int y, vector<vector<char>>& grid) const
+    {
+        PutStar(xc + x, yc + y, grid); 
+        PutStar(xc - x, yc + y, grid); 
+        PutStar(xc + x, yc - y, grid); 
+        PutStar(xc - x, yc - y, grid); 
+        PutStar(xc + y, yc + x, grid); 
+        PutStar(xc - y, yc + x, grid); 
+        PutStar(xc + y, yc - x, grid); 
+        PutStar(xc - y, yc - x, grid); 
+    }
+    void draw(vector<vector<char>>& grid) const override
+    {
+        int xc = coordinates[0].first; 
+        int yc = coordinates[0].second; 
+        int x = 0;
+        int y = radius;
+        int d = 3 - 2 * radius;
+        plotCirclePoints(xc, yc, x, y, grid);
+        while (y >= x)
+        {
+            x++;
+            if (d > 0)
+            {
+                y--;
+                d = d + 4 * (x - y) + 10;
+            }
+            else
+            {
+                d = d + 4 * x + 6;
+            }
+            plotCirclePoints(xc, yc, x, y, grid);
+        }
+    }
 
 public:
 
     Circle(const pair<int, int>& center, int r) : Figure(vector<pair<int, int>>{center}, "circle"), radius(r) 
     {
-        id = findID(coordinates) + to_string(radius);
+        id = findID() + to_string(radius);
     }
 
+};
 
+class PerfectTriangle : public Figure
+{
+    int height;
+    int base;
+
+    void draw(vector<vector<char>>& grid) const override
+    {      
+        pair<int, int> xy1 = coordinates[0];
+        pair<int, int> xy2(xy1.first - base / 2, xy1.second + height);
+        pair<int, int> xy3(xy1.first + base / 2, xy1.second + height);
+        drawLine(grid, xy1, xy2);
+        drawLine(grid, xy1, xy3);
+        drawLine(grid, xy2, xy3);
+
+    }
+
+public:
+    PerfectTriangle(const pair<int, int>& vertex, int h, int b) : Figure(vector<pair<int, int>>{vertex}, "perfect triangle"), base(b), height(h)
+    {
+        id = findID() + to_string(height) + to_string(base);
+    }
 };
 class Board
 {
@@ -166,8 +214,9 @@ int main()
     Board board;
     set<Figure*> figures;
 
-    figures.insert(new Triangle(vector<pair<int, int>>{{1, 1}, { 1, 20 }, { 30, 20 }}));
-    figures.insert(new Rectangular({ 1,1 }, 90, 15));
+    //figures.insert(new Triangle(vector<pair<int, int>>{{1, 1}, { 1, 20 }, { 30, 20 }}));
+    figures.insert(new Circle({ 15,15 }, 4));
+    figures.insert(new PerfectTriangle({ 3,2 }, 4, 9));
 
     for (const auto& figure : figures)
     {
