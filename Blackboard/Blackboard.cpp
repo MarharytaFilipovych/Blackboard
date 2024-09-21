@@ -118,36 +118,46 @@ class Circle : public Figure
     
     void plotCirclePoints(int xc, int yc, int x, int y, vector<vector<char>>& grid) const
     {
-        PutStar(xc + x, yc + y, grid); 
-        PutStar(xc - x, yc + y, grid); 
-        PutStar(xc + x, yc - y, grid); 
-        PutStar(xc - x, yc - y, grid); 
-        PutStar(xc + y, yc + x, grid); 
-        PutStar(xc - y, yc + x, grid); 
-        PutStar(xc + y, yc - x, grid); 
-        PutStar(xc - y, yc - x, grid); 
+        int aspect_ratio_correction = 2; 
+        PutStar(xc + x * aspect_ratio_correction, yc + y, grid);
+        PutStar(xc - x * aspect_ratio_correction, yc + y, grid);
+        PutStar(xc + x * aspect_ratio_correction, yc - y, grid);
+        PutStar(xc - x * aspect_ratio_correction, yc - y, grid);
+        PutStar(xc + y * aspect_ratio_correction, yc + x, grid);
+        PutStar(xc - y * aspect_ratio_correction, yc + x, grid);
+        PutStar(xc + y * aspect_ratio_correction, yc - x, grid);
+        PutStar(xc - y * aspect_ratio_correction, yc - x, grid);
     }
+
     void draw(vector<vector<char>>& grid) const override
     {
         int xc = coordinates[0].first; 
         int yc = coordinates[0].second; 
         int x = 0;
         int y = radius;
-        int d = 3 - 2 * radius;
-        plotCirclePoints(xc, yc, x, y, grid);
+        int d = 1 - 2 * radius;
+        int error = 0;
         while (y >= x)
         {
-            x++;
-            if (d > 0)
+            plotCirclePoints(xc, yc, x, y, grid);
+            error = 2 * (d + y) - 1;
+            if (d > 0 && error>0)
             {
                 y--;
-                d = d + 4 * (x - y) + 10;
+                d = d - (2 * y  + 1);
+            }
+            else if (d < 0 && error <= 0)
+            {          
+                x++;
+                d = d + 2 * x  + 1;
             }
             else
             {
-                d = d + 4 * x + 6;
+                x++;
+                y--;
+                d = d + 2 * (x - y);
             }
-            plotCirclePoints(xc, yc, x, y, grid);
+            
         }
     }
 
@@ -215,8 +225,8 @@ int main()
     set<Figure*> figures;
 
     //figures.insert(new Triangle(vector<pair<int, int>>{{1, 1}, { 1, 20 }, { 30, 20 }}));
-    figures.insert(new Circle({ 15,15 }, 4));
-    figures.insert(new PerfectTriangle({ 3,2 }, 4, 9));
+    figures.insert(new Circle({ 30,10 }, 8));
+    //figures.insert(new PerfectTriangle({ 3,2 }, 4, 9));
 
     for (const auto& figure : figures)
     {
