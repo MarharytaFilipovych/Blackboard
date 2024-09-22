@@ -1,13 +1,37 @@
 using namespace std;
 #include <iostream>
 #include <vector>
-#include <set>
+#include <unordered_map>
 #include <string>
 #include <utility>
+#include <memory>
+#include <stack>
 #define WIDTH 80
 #define HEIGHT 25
 #define PI 3.14159265358979323846
 
+
+ class Type
+{
+    static const string convertTypeToNumber(const string& type) 
+    {
+        string number = "";
+        for (char letter : type)
+        {
+            number += to_string(static_cast<int>(letter)); 
+        }
+        return number;
+    }
+public:
+    static const unordered_map<string, string> types;
+
+};
+
+ const unordered_map<string, string> Type::types = {
+     {"circle", Type::convertTypeToNumber("circle")},
+     {"triangle", Type::convertTypeToNumber("triangle")},
+     {"rectangle", Type::convertTypeToNumber("rectangle")}
+ };
 class Figure
 {
 protected:
@@ -15,15 +39,15 @@ protected:
     string id;
     vector<pair<int, int>> coordinates;
 
-    string findID()
-    {
-        string id = "";
-        for (int i = coordinates.size() - 1; i >= 0; i--)
-        {
+
+    const string findID() {
+        string id = ""; 
+        for (int i = coordinates.size() - 1; i >= 0; i--) {
             id += to_string(coordinates[i].first + coordinates[i].second);
         }
-        id += type;
-        return id;
+
+        id += Type::types.at(type);
+        return id; 
     }
 
     void PutStar(int x, int y, vector<vector<char>>& grid)const {
@@ -52,19 +76,36 @@ protected:
         }
     }
 
+    
+
+
 public:
 
-    Figure(const vector<pair<int,int>>& figure_coordinates, const string& figure_type) : coordinates(figure_coordinates), type(figure_type)
+    Figure(const vector<pair<int,int>>& figure_coordinates, const string& figure_type) : coordinates(figure_coordinates), type(figure_type){}
+    
+    const string getID() const
     {
-
+        return id;
     }
 
+    virtual void printInfo() const = 0;
+    
     virtual void draw(vector<vector<char>>& grid) const = 0; 
 
-    bool operator<(const Figure& other) const
+    bool operator==(const Figure& other) const
     {
-        return id < other.id;
+        return id == other.id;
     }
+
+};
+
+struct HashFunctionForFigure
+{
+    size_t operator()(const shared_ptr<Figure> figure)const
+    {
+        return (hash<string>()(figure->getID()));
+    }
+
 
 };
 
@@ -76,6 +117,10 @@ class Triangle : public Figure
         drawLine(grid, coordinates[0], coordinates[1]);
         drawLine(grid, coordinates[1], coordinates[2]);
         drawLine(grid, coordinates[2], coordinates[0]);
+    }
+    void printInfo() const override
+    {
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << "), (" << coordinates[2].first << "," << coordinates[2].second << ")" << endl;
     }
 public:
     Triangle(const vector<pair<int,int>>& figure_coordinates): Figure(figure_coordinates, "triangle")
@@ -100,6 +145,10 @@ class Rectangular : public Figure
         drawLine(grid, xy2, xy4);
         drawLine(grid, xy4, xy3);
         drawLine(grid, xy1, xy3);
+    }
+    void printInfo() const override
+    {
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), width - " << width << ", height - " << height << endl;
     }
 
 public:
@@ -160,6 +209,10 @@ class Circle : public Figure
             
         }
     }
+    void printInfo() const override
+    {
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), radius - " << radius << endl;
+    }
 
 public:
 
@@ -186,17 +239,20 @@ class PerfectTriangle : public Figure
 
     }
 
+    void printInfo() const override
+    {
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), base length - " << base << ", height - " << height << endl;
+    }
+
 public:
     PerfectTriangle(const pair<int, int>& vertex, int h, int b) : Figure(vector<pair<int, int>>{vertex}, "perfect triangle"), base(b), height(h)
     {
         id = findID() + to_string(height) + to_string(base);
     }
 };
-class Board
+struct Board
 {
-    
-public:
-    vector<vector<char>> grid;
+       vector<vector<char>> grid;
 
     Board() : grid(HEIGHT, vector<char>(WIDTH, ' ')){}
 
@@ -211,34 +267,82 @@ public:
             cout << endl;
         }
     }
-
-    
-
    
 };
 
+class Commands
+{
+    Board board;
+    stack< shared_ptr<Figure>> time_figures;
+    unordered_map<string, shared_ptr<Figure>> figures;
+
+    void viewAvailableShapes() const
+    {
+        cout << "The following shapes can be drawn on the screen (this is a list with relevant parameters:\n"
+            << "* circle: X Y (center coordinates) RADIUS\n"
+            << "* trinagle: X1 Y1 X2 Y2 X3 Y3 (3 coordinates)\n"
+            << "* perfect triangle: X Y (vertex coordinates) HEIGHT BASE_LENGTH\n"
+            << "* rectangular: X Y (top left coordinates) WIDTH HEIGHT\n";
+    }
+
+    void addFigure(const shared_ptr<Figure>& figure) 
+    {
+        figures.emplace(figure->getID(), figure);
+        time_figures.push(figure);
+    }
+
+    void undo(const shared_ptr<Figure>& figure)
+    {
+        figures.erase(figure->getID());
+        time_figures.pop();
+    }
+    
+    void clear()
+    {
+        figures.clear();
+        while (!time_figures.empty())
+        {
+            time_figures.pop();
+        }
+    }
+
+    void draw()
+    {
+        for (const auto& figure : figures)
+        {
+            figure.second->draw(board.grid);
+        }
+        board.print();
+
+    }
+    void list()
+    {
+        for (const auto& figure : figures)
+        {
+            figure.second->printInfo();
+        }
+    }
+};
+class UserInput
+{
+
+
+
+};
 
 
 int main()
 {
-    Board board;
-    set<Figure*> figures;
 
     //figures.insert(new Triangle(vector<pair<int, int>>{{1, 1}, { 1, 20 }, { 30, 20 }}));
-    figures.insert(new Circle({ 30,10 }, 8));
+    //auto circle = make_shared<Circle>(make_pair(30, 10), 8);
+    //figures.emplace(circle->getID(),circle);
     //figures.insert(new PerfectTriangle({ 3,2 }, 4, 9));
 
-    for (const auto& figure : figures)
-    {
-        figure->draw(board.grid);
-    }
+   
 
-    board.print();
 
-    for (auto& figure : figures) {
-        delete figure;
-    }
-
+    
     return 0;
 
 }
