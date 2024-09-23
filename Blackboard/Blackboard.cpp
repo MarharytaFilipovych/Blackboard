@@ -6,6 +6,9 @@ using namespace std;
 #include <utility>
 #include <memory>
 #include <stack>
+#include <algorithm>
+#include <unordered_set>
+#include <sstream>
 #define WIDTH 80
 #define HEIGHT 25
 #define PI 3.14159265358979323846
@@ -123,14 +126,15 @@ class Triangle : public Figure
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << "), (" << coordinates[2].first << "," << coordinates[2].second << ")" << endl;
     }
 public:
-    Triangle(const vector<pair<int,int>>& figure_coordinates): Figure(figure_coordinates, "triangle")
+    Triangle(const pair<int, int>& p1, const pair<int, int>& p2, const pair<int, int>& p3)
+        : Figure(vector<pair<int, int>>{p1, p2, p3}, "triangle") 
     {
         id = findID();
     }
     
 };
 
-class Rectangular : public Figure
+class Rectangle : public Figure
 {
     int width;
     int height;
@@ -152,7 +156,7 @@ class Rectangular : public Figure
     }
 
 public:
-    Rectangular(const pair<int,int>& top_left_point, int w, int h) : Figure(vector<pair<int, int>>{top_left_point}, "rectangular"), width(w), height(h)
+    Rectangle(const pair<int,int>& top_left_point, int w, int h) : Figure(vector<pair<int, int>>{top_left_point}, "rectangular"), width(w), height(h)
     {
         id = findID() + to_string(width) + to_string(height);
     }
@@ -275,7 +279,7 @@ class Commands
     Board board;
     stack< shared_ptr<Figure>> time_figures;
     unordered_map<string, shared_ptr<Figure>> figures;
-
+public:
     void viewAvailableShapes() const
     {
         cout << "The following shapes can be drawn on the screen (this is a list with relevant parameters:\n"
@@ -291,10 +295,11 @@ class Commands
         time_figures.push(figure);
     }
 
-    void undo(const shared_ptr<Figure>& figure)
+    void undo()
     {
-        figures.erase(figure->getID());
+        shared_ptr<Figure>& figure = time_figures.top();
         time_figures.pop();
+        figures.erase(figure->getID());
     }
     
     void clear()
@@ -325,7 +330,240 @@ class Commands
 };
 class UserInput
 {
+    Commands action;
+    string userInput;
+    const unordered_set<string>commands = { "draw", "list", "clear", "undo", "add", "shapes", "list", "exit", "help", "load", "save"};
+    const unordered_set<string> shapes = { "circle", "rectangle", "triangle", "perfect triangle" };
+    bool isDigit(const string& data) const
+    {
+        return all_of(data.begin(), data.end(), ::isdigit);
+    }
+    
+    bool checkForParameters(const istringstream& my_stream)const
+    {
+         if (my_stream.eof())
+            {
+                cout << "This command does need parameters!" << endl;
+                return false;
+            }
+        return true;
 
+    }
+    bool checkForParametersEnd(const istringstream& my_stream)const
+    {
+        if (!my_stream.eof())
+        {
+            cout << "This command already has enough parameters!" << endl;
+            return false;
+        }
+        return true;
+
+    }
+    void getShape(string& shape, istringstream& my_stream)
+    {
+        my_stream >> shape;
+        if (shape == "perfect")
+        {
+            string add_word;
+            my_stream >> add_word;
+            shape = shape + " " + add_word;           
+        }        
+    }
+    bool checkCircle(istringstream& my_stream, int& x, int& y, int& radius)const
+    {
+        if (my_stream >> x >> y >> radius)
+        {
+            string extra;
+            if (!(my_stream >> extra))
+            {
+                return true;
+            }
+        }
+        cout << "Incorrect parameters for a circle! You need to specify a center (x,y) and a radius!" << endl;
+        return false;
+    }
+    bool checkTriangle(istringstream& my_stream, int& x1, int& y1, int& x2, int& y2, int& x3, int& y3)const
+    {
+        if (my_stream >> x1 >> y1 >> x2 >> y2 >> x3 >> y3) {
+            string extra;
+            if (!(my_stream >> extra)) {
+                return true;  
+            }
+        }
+        cout << "Incorrect parameters for a triangle! You are expected to specify 6 coordinates (x1, y1, x2, y2, x3, y3)." << endl;
+
+        return false;  
+    }
+    bool checkRectangle(istringstream& my_stream, int& x, int& y, int& width, int& height)const
+    {
+        if (my_stream >> x >> y >> width >> height) {
+           string extra;
+            if (!(my_stream >> extra)) {
+                return true;  
+            }
+        }
+        cout << "Incorrect parameters for a rectangle! You are expected to specify 4 integers (x, y, width, height)." << endl;
+        return false;
+    }
+    bool checkPerfectTriangle(istringstream& my_stream, int& x, int& y, int& height, int& base_length)
+    {
+        if (my_stream >> x >> y >> height >> base_length) {
+            string extra;
+            if (!(my_stream >> extra)) {
+                return true;
+            }
+        }
+        cout << "Incorrect parameters for a perfect triangle! You are expected to specify 4 integers (x, y, height, base length)." << endl;
+        return false;
+    }
+    void proccessShape(istringstream& my_stream, const string& shape)
+    {
+        if (shape == "circle")
+        {
+            int x, y, radius;
+            if (!checkCircle(my_stream, x, y, radius))
+            {
+                return;
+            } 
+            action.addFigure(make_shared<Circle>(make_pair(x, y), radius));
+        }
+        else if (shape == "triangle")
+        {
+            int x1, y1, x2, y2, x3, y3;
+            if (!checkTriangle(my_stream, x1, y1, x2, y2, x3, y3)) {
+                return;
+            }
+            action.addFigure(make_shared<Triangle>(make_pair(x1, y1), make_pair(x2, y2), make_pair(x3, y3)));
+
+        }
+        else if (shape == "rectangle")
+        {
+            int x, y, width, height;
+            if (!checkRectangle(my_stream, x, y, width, height)) {
+                return;
+            }
+            action.addFigure(make_shared<Rectangle>(make_pair(x, y), width, height));
+
+        }
+        else if (shape == "perfect triangle")
+        {
+            int x, y, height, base_length;
+            if (!checkPerfectTriangle(my_stream, x, y, height, base_length)) {
+                return;
+            }
+            action.addFigure(make_shared<PerfectTriangle>(make_pair(x, y), height, base_length));
+
+        }
+        else
+        {
+            cout << "This shape is not availbale right now!" << endl;
+            return;
+        }
+
+    }
+    bool exit_flag = false;
+
+   
+    void takeUserInput()
+    {
+        string command;
+        cout << "Enter a command with proper parameteers:" << endl;
+        getline(cin, userInput);
+        if (userInput.empty())
+        {
+            return;
+        }
+        istringstream my_stream(userInput);
+        my_stream >> command;
+        if (command != "save" || command != "load" || command != "add")
+        {
+            if (!checkForParametersEnd(my_stream))
+            {
+                return;
+            }
+        }
+        if (command == "draw")
+        {
+            action.draw();
+        }
+        else if (command == "list")
+        {
+            action.list();
+        }
+        else if (command == "clear")
+        {
+            action.clear();
+        }
+        else if (command == "shapes")
+        {
+            action.viewAvailableShapes();
+        }
+        else if (command == "add")
+        {
+            if (!checkForParameters(my_stream))
+            {
+                return;
+            }
+            string shape;
+            getShape(shape, my_stream);            
+            proccessShape(my_stream, shape);
+        }
+        else if (command == "undo")
+        {
+            action.undo();
+        }
+        else if (command == "load")
+        {
+           
+            if (!checkForParameters( my_stream))
+            {
+                return;
+            }
+            string file_path;
+            my_stream >> file_path;
+            if (!checkForParametersEnd(my_stream))
+            {
+                return;
+            }
+        }
+        else if (command == "save")
+        {
+            if (!checkForParameters(my_stream))
+            {
+                return;
+            }
+            string file_path;
+            my_stream >> file_path;
+            if (!checkForParametersEnd(my_stream))
+            {
+                return;
+            }
+        }
+        else if (command == "help")
+        {
+
+        }
+        else if (command == "exit")
+        {
+            cout << "Thanks for using my program:) Have a good rest of your life:)" << endl;
+            exit_flag = true;
+            
+        }
+        else
+        {
+            cout << "This command is not implemented!" << endl;
+        }
+        userInput.clear();
+    }
+ public:
+    UserInput()
+    {
+        cout << "Welcome to the Best balckboard game! Start playing, do not waste any second of your precious  endless life:))))" << endl;
+        while (!exit_flag)
+        {
+            takeUserInput();
+        }
+    }
 
 
 };
@@ -334,11 +572,7 @@ class UserInput
 int main()
 {
 
-    //figures.insert(new Triangle(vector<pair<int, int>>{{1, 1}, { 1, 20 }, { 30, 20 }}));
-    //auto circle = make_shared<Circle>(make_pair(30, 10), 8);
-    //figures.emplace(circle->getID(),circle);
-    //figures.insert(new PerfectTriangle({ 3,2 }, 4, 9));
-
+    UserInput userInput;
    
 
 
