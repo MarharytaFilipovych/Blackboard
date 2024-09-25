@@ -11,11 +11,38 @@ using namespace std;
 #include <sstream>
 #include <fstream>
 #define WIDTH 80
-#define HEIGHT 25
+#define HEIGHT 45
 
+struct Board
+{
+    vector<vector<char>> grid;
+
+    Board() : grid(HEIGHT, vector<char>(WIDTH, ' ')) {}
+
+    void print()
+    {
+        for (auto& row : grid)
+        {
+           for (char c : row)
+            {
+                cout << c;
+            }
+            cout << endl;
+        }
+    }
+    void clear()
+    {
+        for (auto& row : grid)
+        {
+            fill(row.begin(), row.end(), ' '); 
+        }
+    }
+    
+};
 
  class Type
 {
+
     static const string convertTypeToNumber(const string& type) 
     {
         string number = "";
@@ -33,10 +60,14 @@ public:
  const unordered_map<string, string> Type::types = {
      {"circle", Type::convertTypeToNumber("circle")},
      {"triangle", Type::convertTypeToNumber("triangle")},
-     {"rectangle", Type::convertTypeToNumber("rectangle")}
+     {"rectangle", Type::convertTypeToNumber("rectangle")},
+     {"perfect triangle", Type::convertTypeToNumber("perfect triangle")}
  };
+static Board board;
+
 class Figure
 {
+
 protected:
     const string type;
     string id;
@@ -53,13 +84,13 @@ protected:
         return id; 
     }
 
-    void PutStar(int x, int y, vector<vector<char>>& grid)const {
+    void PutStar(int x, int y)const {
         if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
-            grid[y][x] = '*';
+            board.grid[y][x] = '*';
         }
     }
 
-    void drawLine(vector<vector<char>>& grid, const pair<int, int>& xy1, const pair<int, int>& xy2) const
+    void drawLine( const pair<int, int>& xy1, const pair<int, int>& xy2) const
     {
         int x1 = xy1.first;
         int y1 = xy1.second;
@@ -71,7 +102,7 @@ protected:
         int err = dx + dy, e2;
 
         while (true) {
-            PutStar(x1, y1, grid);  
+            PutStar(x1, y1);  
             if (x1 == x2 && y1 == y2) break;
             e2 = 2 * err;
             if (e2 >= dy) { err += dy; x1 += sx; } 
@@ -93,7 +124,7 @@ public:
 
     virtual void printInfo() const = 0;
     
-    virtual void draw(vector<vector<char>>& grid) const = 0; 
+    virtual void draw() const = 0; 
 
     bool operator==(const Figure& other) const
     {
@@ -114,12 +145,11 @@ struct HashFunctionForFigure
 
 class Triangle : public Figure
 {
-    void draw(vector<vector<char>>& grid) const override
+    void draw() const override
     {
-        
-        drawLine(grid, coordinates[0], coordinates[1]);
-        drawLine(grid, coordinates[1], coordinates[2]);
-        drawLine(grid, coordinates[2], coordinates[0]);
+        drawLine( coordinates[0], coordinates[1]);
+        drawLine(coordinates[1], coordinates[2]);
+        drawLine(coordinates[2], coordinates[0]);
     }
     void printInfo() const override
     {
@@ -139,16 +169,16 @@ class Rectangle : public Figure
     int width;
     int height;
 
-    void draw(vector<vector<char>>& grid) const override
+    void draw() const override
     {
         pair<int, int> xy1(coordinates[0]);
         pair<int, int> xy2(coordinates[0].first, coordinates[0].second + height);
         pair<int, int> xy3(coordinates[0].first+width, coordinates[0].second);
         pair<int, int> xy4(coordinates[0].first + width, coordinates[0].second + height);
-        drawLine(grid, xy1, xy2);
-        drawLine(grid, xy2, xy4);
-        drawLine(grid, xy4, xy3);
-        drawLine(grid, xy1, xy3);
+        drawLine(xy1, xy2);
+        drawLine(xy2, xy4);
+        drawLine(xy4, xy3);
+        drawLine(xy1, xy3);
     }
     void printInfo() const override
     {
@@ -156,7 +186,7 @@ class Rectangle : public Figure
     }
 
 public:
-    Rectangle(const pair<int,int>& top_left_point, int w, int h) : Figure(vector<pair<int, int>>{top_left_point}, "rectangular"), width(w), height(h)
+    Rectangle(const pair<int,int>& top_left_point, int w, int h) : Figure(vector<pair<int, int>>{top_left_point}, "rectangle"), width(w), height(h)
     {
         id = findID() + to_string(width) + to_string(height);
     }
@@ -169,20 +199,20 @@ class Circle : public Figure
 {
     int radius;
     
-    void plotCirclePoints(int xc, int yc, int x, int y, vector<vector<char>>& grid) const
+    void plotCirclePoints(int xc, int yc, int x, int y) const
     {
         int aspect_ratio_correction = 2; 
-        PutStar(xc + x * aspect_ratio_correction, yc + y, grid);
-        PutStar(xc - x * aspect_ratio_correction, yc + y, grid);
-        PutStar(xc + x * aspect_ratio_correction, yc - y, grid);
-        PutStar(xc - x * aspect_ratio_correction, yc - y, grid);
-        PutStar(xc + y * aspect_ratio_correction, yc + x, grid);
-        PutStar(xc - y * aspect_ratio_correction, yc + x, grid);
-        PutStar(xc + y * aspect_ratio_correction, yc - x, grid);
-        PutStar(xc - y * aspect_ratio_correction, yc - x, grid);
+        PutStar(xc + x * aspect_ratio_correction, yc + y);
+        PutStar(xc - x * aspect_ratio_correction, yc + y);
+        PutStar(xc + x * aspect_ratio_correction, yc - y);
+        PutStar(xc - x * aspect_ratio_correction, yc - y);
+        PutStar(xc + y * aspect_ratio_correction, yc + x);
+        PutStar(xc - y * aspect_ratio_correction, yc + x);
+        PutStar(xc + y * aspect_ratio_correction, yc - x);
+        PutStar(xc - y * aspect_ratio_correction, yc - x);
     }
 
-    void draw(vector<vector<char>>& grid) const override
+    void draw() const override
     {
         int xc = coordinates[0].first; 
         int yc = coordinates[0].second; 
@@ -192,7 +222,7 @@ class Circle : public Figure
         int error = 0;
         while (y >= x)
         {
-            plotCirclePoints(xc, yc, x, y, grid);
+            plotCirclePoints(xc, yc, x, y);
             error = 2 * (d + y) - 1;
             if (d > 0 && error>0)
             {
@@ -232,14 +262,14 @@ class PerfectTriangle : public Figure
     int height;
     int base;
 
-    void draw(vector<vector<char>>& grid) const override
+    void draw() const override
     {      
         pair<int, int> xy1 = coordinates[0];
         pair<int, int> xy2(xy1.first - base / 2, xy1.second + height);
         pair<int, int> xy3(xy1.first + base / 2, xy1.second + height);
-        drawLine(grid, xy1, xy2);
-        drawLine(grid, xy1, xy3);
-        drawLine(grid, xy2, xy3);
+        drawLine(xy1, xy2);
+        drawLine(xy1, xy3);
+        drawLine(xy2, xy3);
 
     }
 
@@ -254,29 +284,9 @@ public:
         id = findID() + to_string(height) + to_string(base);
     }
 };
-struct Board
-{
-       vector<vector<char>> grid;
-
-    Board() : grid(HEIGHT, vector<char>(WIDTH, ' ')){}
-
-    void print()
-    {
-        for (auto& row : grid)
-        {
-            for (char c : row)
-            {
-                cout << c;
-            }
-            cout << endl;
-        }
-    }
-   
-};
 
 class Commands
 {
-    Board board;
     stack< shared_ptr<Figure>> time_figures;
     unordered_map<string, shared_ptr<Figure>> figures;
 public:
@@ -302,6 +312,11 @@ public:
         shared_ptr<Figure>& figure = time_figures.top();
         time_figures.pop();
         figures.erase(figure->getID());
+        for (auto& figure : figures)
+        {
+            figure.second->draw();
+        }
+        
     }
     
     void clear()
@@ -315,10 +330,10 @@ public:
 
     void draw()
     {
-        
-        board.print();
-
+        //system("cls");       
+        board.print(); 
     }
+
     
     void list()
     {
@@ -466,10 +481,16 @@ class UserInput
 
     }
     bool exit_flag = false;
-
+    string previous_command="";
    
     void takeUserInput()
     {
+        if (previous_command == "draw")
+        {
+            cout << "Press Enter to continue..." << endl;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+            system("cls");  
+        }
         string command;
         cout << "Enter a command with proper parameteers:" << endl;
         getline(cin, userInput);
@@ -572,6 +593,7 @@ class UserInput
         {
             cout << "This command is not implemented!" << endl;
         }
+        previous_command = command;
         userInput.clear();
     }
  public:
