@@ -9,9 +9,9 @@ using namespace std;
 #include <algorithm>
 #include <unordered_set>
 #include <sstream>
+#include <fstream>
 #define WIDTH 80
 #define HEIGHT 25
-#define PI 3.14159265358979323846
 
 
  class Type
@@ -79,7 +79,7 @@ protected:
         }
     }
 
-    
+    virtual ~Figure() = default;
 
 
 public:
@@ -293,6 +293,8 @@ public:
     {
         figures.emplace(figure->getID(), figure);
         time_figures.push(figure);
+
+
     }
 
     void undo()
@@ -313,13 +315,11 @@ public:
 
     void draw()
     {
-        for (const auto& figure : figures)
-        {
-            figure.second->draw(board.grid);
-        }
+        
         board.print();
 
     }
+    
     void list()
     {
         for (const auto& figure : figures)
@@ -327,13 +327,16 @@ public:
             figure.second->printInfo();
         }
     }
+    void save(const fstream& file)
+    {
+        
+        
+    }
 };
 class UserInput
 {
     Commands action;
     string userInput;
-    const unordered_set<string>commands = { "draw", "list", "clear", "undo", "add", "shapes", "list", "exit", "help", "load", "save"};
-    const unordered_set<string> shapes = { "circle", "rectangle", "triangle", "perfect triangle" };
     bool isDigit(const string& data) const
     {
         return all_of(data.begin(), data.end(), ::isdigit);
@@ -459,6 +462,7 @@ class UserInput
             cout << "This shape is not availbale right now!" << endl;
             return;
         }
+        cout << "The figure was added, don't worry!:)" << endl;
 
     }
     bool exit_flag = false;
@@ -475,7 +479,7 @@ class UserInput
         }
         istringstream my_stream(userInput);
         my_stream >> command;
-        if (command != "save" || command != "load" || command != "add")
+        if (command != "save" && command != "load" && command != "add")
         {
             if (!checkForParametersEnd(my_stream))
             {
@@ -526,7 +530,8 @@ class UserInput
                 return;
             }
         }
-        else if (command == "save")
+        
+        else if (command == "save" || command == "load")
         {
             if (!checkForParameters(my_stream))
             {
@@ -534,9 +539,23 @@ class UserInput
             }
             string file_path;
             my_stream >> file_path;
+            fstream file(file_path);
+            if (!file.is_open())
+            {
+                return;
+            }
             if (!checkForParametersEnd(my_stream))
             {
                 return;
+            }
+            if (command == "save")
+            {
+                action.save(file);
+
+            }
+            else
+            {
+
             }
         }
         else if (command == "help")
