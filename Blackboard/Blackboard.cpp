@@ -1,4 +1,4 @@
-using namespace std;
+﻿using namespace std;
 #include <iostream>
 #include <vector>
 #include <unordered_map>
@@ -11,7 +11,7 @@ using namespace std;
 #include <sstream>
 #include <fstream>
 #define WIDTH 80
-#define HEIGHT 45
+#define HEIGHT 35
 
 struct Board
 {
@@ -303,7 +303,7 @@ public:
     {
         figures.emplace(figure->getID(), figure);
         time_figures.push(figure);
-
+        figure->draw();
 
     }
 
@@ -330,7 +330,7 @@ public:
 
     void draw()
     {
-        //system("cls");       
+        system("cls");       
         board.print(); 
     }
 
@@ -342,10 +342,57 @@ public:
             figure.second->printInfo();
         }
     }
-    void save(const fstream& file)
+    void save(const string& file_path)
     {
-        
-        
+        ofstream file(file_path);
+
+        if (!file.is_open()) {
+            cout << "The file can't be opened. Believe me, I tried((((!" << endl;
+            return;
+        }
+
+        for (const auto& row : board.grid)
+        {
+            for (char c : row) {
+                file << c;
+            }
+            file << '\n';  
+        }
+        cout << "The board was saved successfully!" << endl;
+        file.close();
+    }
+
+    void load(const string& file_path)
+    {
+        ifstream file(file_path);
+        if (!file.is_open())
+        {
+            cout << "I have 2 ideas: either your file doesn't exist here or something is not right!" << endl;
+            return;
+        }
+        board.clear();
+        string line;
+        int line_count = 0;
+        while (getline(file, line))
+        {
+            if (line.size() > WIDTH && line_count > HEIGHT)
+            {
+                cout << "Invalid board format. It is too big!" << endl;
+                return;
+            }
+            for (int i = 0; i < WIDTH; i++)
+            {
+                if (line[i] != ' ' && line[i] != '*')
+                {
+                    cout << "Invalid symbols on the board!" << endl;
+                    return;
+                }
+                board.grid[line_count][i] = line[i];
+            }    
+            line_count++;
+        }
+        file.close();
+        cout << "The board was loaded successfully!" << endl;
     }
 };
 class UserInput
@@ -546,13 +593,15 @@ class UserInput
             }
             string file_path;
             my_stream >> file_path;
+            
             if (!checkForParametersEnd(my_stream))
             {
                 return;
             }
+            action.load(file_path);
         }
         
-        else if (command == "save" || command == "load")
+        else if (command == "save" )
         {
             if (!checkForParameters(my_stream))
             {
@@ -560,24 +609,14 @@ class UserInput
             }
             string file_path;
             my_stream >> file_path;
-            fstream file(file_path);
-            if (!file.is_open())
-            {
-                return;
-            }
             if (!checkForParametersEnd(my_stream))
             {
                 return;
             }
-            if (command == "save")
-            {
-                action.save(file);
+            action.save(file_path);
 
-            }
-            else
-            {
-
-            }
+            
+            
         }
         else if (command == "help")
         {
