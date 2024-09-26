@@ -37,7 +37,12 @@ struct Board
             fill(row.begin(), row.end(), ' '); 
         }
     }
-    
+    void PutStar(int x, int y) {
+        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
+            grid[y][x] = '*';
+        }
+    }
+
 };
 
  class Type
@@ -85,12 +90,7 @@ protected:
         return id; 
     }
 
-    void PutStar(int x, int y)const {
-        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
-            board.grid[y][x] = '*';
-        }
-    }
-
+    
     void drawLine( const pair<int, int>& xy1, const pair<int, int>& xy2) const
     {
         int x1 = xy1.first;
@@ -103,7 +103,7 @@ protected:
         int err = dx + dy, e2;
 
         while (true) {
-            PutStar(x1, y1);  
+            board.PutStar(x1, y1);  
             if (x1 == x2 && y1 == y2) break;
             e2 = 2 * err;
             if (e2 >= dy) { err += dy; x1 += sx; } 
@@ -202,15 +202,14 @@ class Circle : public Figure
     
     void plotCirclePoints(int xc, int yc, int x, int y) const
     {
-        int aspect_ratio_correction = 2; 
-        PutStar(xc + x * aspect_ratio_correction, yc + y);
-        PutStar(xc - x * aspect_ratio_correction, yc + y);
-        PutStar(xc + x * aspect_ratio_correction, yc - y);
-        PutStar(xc - x * aspect_ratio_correction, yc - y);
-        PutStar(xc + y * aspect_ratio_correction, yc + x);
-        PutStar(xc - y * aspect_ratio_correction, yc + x);
-        PutStar(xc + y * aspect_ratio_correction, yc - x);
-        PutStar(xc - y * aspect_ratio_correction, yc - x);
+        board.PutStar(xc + x * 2, yc + y);
+        board.PutStar(xc - x * 2, yc + y);
+        board.PutStar(xc + x * 2, yc - y);
+        board.PutStar(xc - x * 2, yc - y);
+        board.PutStar(xc + y * 2, yc + x);
+        board.PutStar(xc - y * 2, yc + x);
+        board.PutStar(xc + y * 2, yc - x);
+        board.PutStar(xc - y * 2, yc - x);
     }
 
     void draw() const override
@@ -254,29 +253,36 @@ public:
 class PerfectTriangle : public Figure
 {
     int height;
-    int base;
 
-    void draw() const override
-    {      
-        pair<int, int> xy1 = coordinates[0];
-        pair<int, int> xy2(xy1.first - base / 2, xy1.second + height);
-        pair<int, int> xy3(xy1.first + base / 2, xy1.second + height);
-        drawLine(xy1, xy2);
-        drawLine(xy1, xy3);
-        drawLine(xy2, xy3);
+    void draw() const override{
+        int x = coordinates[0].first;
+        int y = coordinates[0].second;
 
+        for (int i = 0; i < height; ++i) {
+            int leftMost = x - i; 
+            int rightMost = x + i; 
+            int posY = y + i;            
+            board.PutStar(leftMost, posY);
+            board.PutStar(rightMost, posY);            
+        }
+        for (int j = 0; j < 2 * height - 1; ++j) {
+            int baseX = x - height + 1 + j;
+            int baseY = y + height - 1;
+            board.PutStar(baseX, baseY);
+
+        }
     }
 
     void printInfo() const override
     {
-        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), base length - " << base << ", height - " << height << endl;
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << ")," << ", height - " << height << endl;
     }
 
 public:
 
-    PerfectTriangle(const pair<int, int>& vertex, int h, int b) : Figure(vector<pair<int, int>>{vertex}, "perfect triangle"), base(b), height(h)
+    PerfectTriangle(const pair<int, int>& vertex, int h) : Figure(vector<pair<int, int>>{vertex}, "perfect triangle"), height(h)
     {
-        id = findID() + to_string(height) + to_string(base);
+        id = findID() + to_string(height);
     }
 };
 
@@ -313,7 +319,7 @@ public:
         cout << "The following shapes can be drawn on the screen (this is a list with relevant parameters:\n"
             << "* circle: X Y (center coordinates) RADIUS\n"
             << "* trinagle: X1 Y1 X2 Y2 X3 Y3 (3 coordinates)\n"
-            << "* perfect triangle: X Y (vertex coordinates) HEIGHT BASE_LENGTH\n"
+            << "* perfect triangle: X Y (vertex coordinates) HEIGHT\n"
             << "* rectangular: X Y (top left coordinates) WIDTH HEIGHT\n"
             << "* line: X1 Y1 X2 Y2 (2 coordinates)\n";
     }
@@ -458,7 +464,7 @@ class UserInput
          return my_stream.eof();      
     }
 
-    bool checkCircle(istringstream& my_stream, int& x, int& y, int& radius)const
+    bool checkFigureWithThreeParam(istringstream& my_stream, int& x, int& y, int& radius)const
     {
         if (my_stream >> x >> y >> radius)
         {
@@ -493,7 +499,7 @@ class UserInput
     void processCircle(istringstream& my_stream) 
     {
         int x, y, radius;
-        if (!checkCircle(my_stream, x, y, radius) || !isWithinBounds(x, y) || radius < 0 || radius > WIDTH || radius > HEIGHT)
+        if (!checkFigureWithThreeParam(my_stream, x, y, radius) || !isWithinBounds(x, y) || radius < 0 || radius > WIDTH || radius > HEIGHT)
         {
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
@@ -524,13 +530,13 @@ class UserInput
 
     void processPerfectTriangle(istringstream& my_stream) 
     {
-        int x, y, height, base_length;
-        if (!checkFigureWithFourParam(my_stream, x, y, height, base_length) || !isWithinBounds(x, y) || !isWithinBounds(base_length, height)) {
-
+        int x, y, height;
+        if (!checkFigureWithThreeParam(my_stream, x, y, height) || !isWithinBounds(x, y) || height < 0 || height > HEIGHT)
+        {
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<PerfectTriangle>(make_pair(x, y), height, base_length));
+        action.addFigure(make_shared<PerfectTriangle>(make_pair(x, y), height));
     }
 
     void processLine(istringstream& my_stream)
