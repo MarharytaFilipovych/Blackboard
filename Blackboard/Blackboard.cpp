@@ -215,35 +215,28 @@ class Circle : public Figure
 
     void draw() const override
     {
-        int xc = coordinates[0].first; 
-        int yc = coordinates[0].second; 
+        int xc = coordinates[0].first;
+        int yc = coordinates[0].second;
         int x = 0;
         int y = radius;
-        int d = 1 - 2 * radius;
-        int error = 0;
-        while (y >= x)
+        int d = 1 - radius;  
+        plotCirclePoints(xc, yc, x, y);
+        while (y > x)
         {
-            plotCirclePoints(xc, yc, x, y);
-            error = 2 * (d + y) - 1;
-            if (d > 0 && error>0)
+            x++;
+            if (d < 0)
             {
-                y--;
-                d = d - (2 * y  + 1);
-            }
-            else if (d < 0 && error <= 0)
-            {          
-                x++;
-                d = d + 2 * x  + 1;
+                d += 2 * x + 1;  
             }
             else
             {
-                x++;
                 y--;
-                d = d + 2 * (x - y);
+                d += 2 * (x - y) + 1;  
             }
-            
+            plotCirclePoints(xc, yc, x, y);
         }
     }
+
     void printInfo() const override
     {
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), radius - " << radius << endl;
