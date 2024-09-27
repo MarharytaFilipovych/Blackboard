@@ -62,12 +62,15 @@ public:
 
 };
 
- const unordered_map<string, string> Type::types = {
+ const unordered_map<string, string> Type::types = 
+ {
      {"circle", Type::convertTypeToNumber("circle")},
      {"triangle", Type::convertTypeToNumber("triangle")},
      {"rectangle", Type::convertTypeToNumber("rectangle")},
      {"perfect triangle", Type::convertTypeToNumber("perfect triangle")},
-        {"line", Type::Type::convertTypeToNumber("line")} };
+     {"line", Type::Type::convertTypeToNumber("line")},
+     {"square", Type::Type::convertTypeToNumber("square")} 
+ };
  
 static Board board;
 
@@ -75,7 +78,7 @@ class Figure
 {
 
 protected:
-    const string type;
+    string type;
     string id;
     vector<pair<int, int>> coordinates;
 
@@ -102,7 +105,8 @@ protected:
         int dy = -abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
         int err = dx + dy, e2;
 
-        while (x1 != x2 || y1 != y2) {
+        while (true) {
+            if (x1 == x2 && y1 == y2) break;
             board.PutStar(x1, y1);  
             e2 = 2 * err;
             if (e2 >= dy) { err += dy; x1 += sx; } 
@@ -120,6 +124,10 @@ public:
     const string getID() const
     {
         return id;
+    }
+
+    void setType(const string& new_type) {
+        type = new_type;
     }
 
     virtual void printInfo() const = 0;
@@ -151,11 +159,14 @@ class Triangle : public Figure
         drawLine(coordinates[1], coordinates[2]);
         drawLine(coordinates[2], coordinates[0]);
     }
+
     void printInfo() const override
     {
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << "), (" << coordinates[2].first << "," << coordinates[2].second << ")" << endl;
     }
+
 public:
+
     Triangle(const pair<int, int>& p1, const pair<int, int>& p2, const pair<int, int>& p3)
         : Figure(vector<pair<int, int>>{p1, p2, p3}, "triangle") 
     {
@@ -169,7 +180,9 @@ class Rectangle : public Figure
     int width;
     int height;
 
-    void draw() const override
+protected:
+
+    virtual void draw() const override
     {
         pair<int, int> xy1(coordinates[0]);
         pair<int, int> xy2(coordinates[0].first, coordinates[0].second + height);
@@ -178,9 +191,9 @@ class Rectangle : public Figure
         drawLine(xy1, xy2);
         drawLine(xy2, xy4);
         drawLine(xy4, xy3);
-        drawLine(xy1, xy3);
+        drawLine(xy3, xy1); 
     }
-    void printInfo() const override
+    virtual void printInfo() const override
     {
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), width - " << width << ", height - " << height << endl;
     }
@@ -193,6 +206,23 @@ public:
 
 
 
+};
+class Square : public Rectangle
+{
+    void draw() const override
+    {
+        Rectangle::draw();
+    }
+    void printInfo()const override
+    {
+        Rectangle::printInfo();
+    }
+public:
+    Square(const pair<int, int>& top_left_point, int side_length) : Rectangle(top_left_point, side_length, side_length)
+    {
+        setType("square");
+        id = findID() + to_string(side_length);
+    }
 };
 
 class Circle : public Figure
@@ -320,7 +350,8 @@ public:
             << "* trinagle: X1 Y1 X2 Y2 X3 Y3 (3 coordinates)\n"
             << "* perfect triangle: X Y (vertex coordinates) HEIGHT\n"
             << "* rectangular: X Y (top left coordinates) WIDTH HEIGHT\n"
-            << "* line: X1 Y1 X2 Y2 (2 coordinates)\n";
+            << "* line: X1 Y1 X2 Y2 (2 coordinates)\n"
+            << "* square: X Y (top left coordinates) SIDE_LENGTH\n";
     }
 
     void addFigure(const shared_ptr<Figure>& figure) 
@@ -342,6 +373,7 @@ public:
         shared_ptr<Figure>& figure = time_figures.top();
         time_figures.pop();
         figures.erase(figure->getID());
+        board.clear();
         for (auto& figure : figures)
         {
             figure.second->draw();
@@ -527,6 +559,17 @@ class UserInput
         action.addFigure(make_shared<Rectangle>(make_pair(x, y), width, height));
     }
 
+    void processSquare(istringstream& my_stream)
+    {
+        int x, y, side_length;
+        if (!checkFigureWithThreeParam(my_stream, x, y, side_length) || !isWithinBounds(x, y) || side_length < 0 || side_length > WIDTH || side_length > HEIGHT)
+        {
+            cout << "Incorrect parameters! Check 'shapes' command!" << endl;
+            return;
+        }
+        action.addFigure(make_shared<Square>(make_pair(x, y), side_length));
+    }
+
     void processPerfectTriangle(istringstream& my_stream) 
     {
         int x, y, height;
@@ -570,6 +613,11 @@ class UserInput
         else if (shape == "line")
         {
             processLine(my_stream);
+        }
+        else if (shape == "square")
+        {
+            processSquare(my_stream);
+
         }
         else {
             cout << "This shape is not available right now!" << endl;
