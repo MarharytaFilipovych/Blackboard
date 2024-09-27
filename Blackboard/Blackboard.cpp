@@ -37,7 +37,7 @@ struct Board
             fill(row.begin(), row.end(), ' '); 
         }
     }
-    void PutStar(int x, int y) {
+    void putStar(int x, int y) {
         if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
             grid[y][x] = '*';
         }
@@ -107,7 +107,7 @@ protected:
 
         while (true) {
             if (x1 == x2 && y1 == y2) break;
-            board.PutStar(x1, y1);  
+            board.putStar(x1, y1);  
             e2 = 2 * err;
             if (e2 >= dy) { err += dy; x1 += sx; } 
             if (e2 <= dx) { err += dx; y1 += sy; } 
@@ -231,14 +231,14 @@ class Circle : public Figure
     
     void plotCirclePoints(int xc, int yc, int x, int y) const
     {
-        board.PutStar(xc + x * 2, yc + y);
-        board.PutStar(xc - x * 2, yc + y);
-        board.PutStar(xc + x * 2, yc - y);
-        board.PutStar(xc - x * 2, yc - y);
-        board.PutStar(xc + y * 2, yc + x);
-        board.PutStar(xc - y * 2, yc + x);
-        board.PutStar(xc + y * 2, yc - x);
-        board.PutStar(xc - y * 2, yc - x);
+        board.putStar(xc + x * 2, yc + y);
+        board.putStar(xc - x * 2, yc + y);
+        board.putStar(xc + x * 2, yc - y);
+        board.putStar(xc - x * 2, yc - y);
+        board.putStar(xc + y * 2, yc + x);
+        board.putStar(xc - y * 2, yc + x);
+        board.putStar(xc + y * 2, yc - x);
+        board.putStar(xc - y * 2, yc - x);
     }
 
     void draw() const override
@@ -291,13 +291,13 @@ class PerfectTriangle : public Figure
             int leftMost = x - i; 
             int rightMost = x + i; 
             int posY = y + i;            
-            board.PutStar(leftMost, posY);
-            board.PutStar(rightMost, posY);            
+            board.putStar(leftMost, posY);
+            board.putStar(rightMost, posY);            
         }
         for (int j = 0; j < 2 * height - 1; ++j) {
             int baseX = x - height + 1 + j;
             int baseY = y + height - 1;
-            board.PutStar(baseX, baseY);
+            board.putStar(baseX, baseY);
 
         }
     }
@@ -439,14 +439,14 @@ public:
         {
             if (line.size() > WIDTH && line_count > HEIGHT)
             {
-                cout << "Invalid board format. It is too big!" << endl;
+                cout << "Incorrect board format. It is too big!" << endl;
                 return;
             }
             for (int i = 0; i < WIDTH; i++)
             {
                 if (line[i] != ' ' && line[i] != '*')
                 {
-                    cout << "Invalid symbols on the board!" << endl;
+                    cout << "Incorrect symbols on the board!" << endl;
                     return;
                 }
                 board.grid[line_count][i] = line[i];
@@ -463,11 +463,6 @@ class UserInput
     string userInput;
     bool exit_flag = false;
     string previous_command = "";
-
-    bool isDigit(const string& data) const
-    {
-        return all_of(data.begin(), data.end(), ::isdigit);
-    }
     
     bool checkForParameters(const istringstream& my_stream)const
     {
@@ -617,7 +612,6 @@ class UserInput
         else if (shape == "square")
         {
             processSquare(my_stream);
-
         }
         else {
             cout << "This shape is not available right now!" << endl;
