@@ -30,6 +30,7 @@ struct Board
             cout << endl;
         }
     }
+    int counter = 0;
     void clear()
     {
         for (auto& row : grid)
@@ -37,6 +38,7 @@ struct Board
             fill(row.begin(), row.end(), ' '); 
         }
     }
+
     void PutStar(int x, int y) {
         if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
             grid[y][x] = '*';
@@ -81,10 +83,9 @@ protected:
     string type;
     string id;
     vector<pair<int, int>> coordinates;
-
-
     const string findID() {
         string id = ""; 
+        id += to_string(board.counter) + ".";
         for (int i = coordinates.size() - 1; i >= 0; i--) {
             id += to_string(coordinates[i].first + coordinates[i].second);
         }
@@ -119,7 +120,10 @@ protected:
 
 public:
 
-    Figure(const vector<pair<int,int>>& figure_coordinates, const string& figure_type) : coordinates(figure_coordinates), type(figure_type){}
+    Figure(const vector<pair<int, int>>& figure_coordinates, const string& figure_type) : coordinates(figure_coordinates), type(figure_type)
+    {
+        board.counter++;
+    }
     
     const string getID() const
     {
@@ -370,9 +374,19 @@ public:
 
     void undo()
     {
-        shared_ptr<Figure>& figure = time_figures.top();
-        time_figures.pop();
-        figures.erase(figure->getID());
+
+        for (auto& figure : figures)
+        {
+            string id = figure.first;
+            size_t dot = id.find('.');
+            int number = stoi(id.substr(0, dot));
+            if (number == board.counter)
+            {
+                figures.erase(id);
+                board.counter--;
+                break;
+            }
+        }
         board.clear();
         for (auto& figure : figures)
         {
