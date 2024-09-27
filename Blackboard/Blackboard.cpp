@@ -102,9 +102,8 @@ protected:
         int dy = -abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
         int err = dx + dy, e2;
 
-        while (true) {
+        while (x1 != x2 || y1 != y2) {
             board.PutStar(x1, y1);  
-            if (x1 == x2 && y1 == y2) break;
             e2 = 2 * err;
             if (e2 >= dy) { err += dy; x1 += sx; } 
             if (e2 <= dx) { err += dx; y1 += sy; } 
