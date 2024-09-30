@@ -338,7 +338,7 @@ public:
     };
 class Commands
 {
-    stack< shared_ptr<Figure>> time_figures;
+    stack< string> time_figures;
     unordered_map<string, shared_ptr<Figure>> figures;
 
 public:
@@ -361,8 +361,9 @@ public:
             cout << "This figure has been already added earlier! Try to use some imagination!" << endl;
             return;
         }
-        figures.emplace(figure->getID(), figure);
-        time_figures.push(figure);
+        string id = figure->getID();
+        figures.emplace(id, figure);
+        time_figures.push(id);
         figure->draw();
         cout << "The figure was added, don't worry!:)" << endl;
 
@@ -370,9 +371,9 @@ public:
 
     void undo()
     {
-        shared_ptr<Figure>& figure = time_figures.top();
+        string id = time_figures.top();
         time_figures.pop();
-        figures.erase(figure->getID());
+        figures.erase(id);
         board.clear();
         for (auto& figure : figures)
         {
