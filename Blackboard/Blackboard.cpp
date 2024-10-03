@@ -148,7 +148,6 @@ struct HashFunctionForFigure
         return (hash<string>()(figure->getID()));
     }
 
-
 };
 
 class Triangle : public Figure
@@ -338,7 +337,7 @@ public:
     };
 class Commands
 {
-    stack< string> time_figures;
+    stack<string> time_figures;
     unordered_map<string, shared_ptr<Figure>> figures;
 
 public:
@@ -349,7 +348,7 @@ public:
             << "* circle: X Y (center coordinates) RADIUS\n"
             << "* trinagle: X1 Y1 X2 Y2 X3 Y3 (3 coordinates)\n"
             << "* perfect triangle: X Y (vertex coordinates) HEIGHT\n"
-            << "* rectangular: X Y (top left coordinates) WIDTH HEIGHT\n"
+            << "* rectangle: X Y (top left coordinates) WIDTH HEIGHT\n"
             << "* line: X1 Y1 X2 Y2 (2 coordinates)\n"
             << "* square: X Y (top left coordinates) SIDE_LENGTH\n";
     }
