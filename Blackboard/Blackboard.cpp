@@ -469,6 +469,7 @@ public:
         figures.erase(id);
         time_figures.erase(find(time_figures.begin(), time_figures.end(), id));
         drawTheBoard();
+        cout << "The figure was removed successully!" << endl;
     }
 };
 class UserInput
@@ -641,6 +642,20 @@ class UserInput
         getShape(shape, my_stream);
         processShape(my_stream, shape);
     }
+    void remove(istringstream& my_stream)
+    {
+        if (!checkForParameters(my_stream)) {
+            return;
+        }
+        string id;
+        my_stream >> id;
+        action.remove(id);
+        if (!checkForParametersEnd(my_stream))
+        {
+            cout << "This command already has enough parameters!" << endl;
+            return;
+        }
+    }
 
     void loadOrSave(const string& command, istringstream& my_stream) 
     {
@@ -685,7 +700,8 @@ class UserInput
             << "* load FILE_PATH: load a blackboard from your file. Be cautious, as the board must meet the following requirements: symbols can be either ' ' or '*', a maximum width of the board 80 and a height of 40.\n"
             << "* save FILE_PATH: save your blackboard to the specified file.\n"
             << "* help:get assistance with using the commands.\n"
-            << "* exit: finish your work here.\n";
+            << "* exit: finish your work here.\n"
+            << "* remove ID: remove the figure by specifying its id.\n";
     }
     void exit()
     {
@@ -707,7 +723,7 @@ class UserInput
         }
         istringstream my_stream(userInput);
         my_stream >> command;
-        if (command != "save" && command != "load" && command != "add")
+        if (command != "save" && command != "load" && command != "add" && command != "remove")
         {
             if (!checkForParametersEnd(my_stream))
             {
@@ -750,6 +766,10 @@ class UserInput
         else if (command == "exit")
         {
             exit();
+        }
+        else if (command == "remove")
+        {
+            remove(my_stream);
         }
         else
         {
