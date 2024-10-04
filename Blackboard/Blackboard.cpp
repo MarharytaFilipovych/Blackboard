@@ -337,8 +337,17 @@ public:
     };
 class Commands
 {
-    stack<string> time_figures;
+    vector<string> time_figures;
     unordered_map<string, shared_ptr<Figure>> figures;
+
+    void drawTheBoard()
+    {
+        board.clear();
+        for (auto& figure : figures)
+        {
+            figure.second->draw();
+        }
+    }
 
 public:
 
@@ -362,7 +371,7 @@ public:
         }
         string id = figure->getID();
         figures.emplace(id, figure);
-        time_figures.push(id);
+        time_figures.push_back(id);
         figure->draw();
         cout << "The figure was added, don't worry!:)" << endl;
 
@@ -370,23 +379,16 @@ public:
 
     void undo()
     {
-        string id = time_figures.top();
-        time_figures.pop();
+        string id = time_figures.back();
+        time_figures.pop_back();
         figures.erase(id);
-        board.clear();
-        for (auto& figure : figures)
-        {
-            figure.second->draw();
-        }       
+        drawTheBoard();
     }
     
     void clear()
     {
         figures.clear();
-        while (!time_figures.empty())
-        {
-            time_figures.pop();
-        }
+        time_figures.clear();
         board.clear();
     }
 
@@ -455,6 +457,18 @@ public:
         }
         file.close();
         cout << "The board was loaded successfully!" << endl;
+    }
+
+    void remove(const string& id)
+    {
+        if (figures.find(id) == figures.end())
+        {
+            cout << "This shape doesn't exist!" << endl;
+            return;
+        }
+        figures.erase(id);
+        time_figures.erase(find(time_figures.begin(), time_figures.end(), id));
+        drawTheBoard();
     }
 };
 class UserInput
