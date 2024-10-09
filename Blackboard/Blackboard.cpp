@@ -184,8 +184,10 @@ struct HashFunctionForFigure
 
 class Triangle : public Figure
 {
-
     pair<int, int> center;
+    pair<int, int> xy1;
+    pair<int, int> xy2;
+    pair<int, int> xy3;
 
     void calculateCenter()
     {
@@ -193,23 +195,9 @@ class Triangle : public Figure
         int y = (coordinates[0].second + coordinates[1].second + coordinates[2].second)/3;
         center = make_pair(x, y);
     }
-    friend class PerfectTriangle;
 
-    void draw() const override
-    {
-        drawLine( coordinates[0], coordinates[1]);
-        drawLine(coordinates[1], coordinates[2]);
-        drawLine(coordinates[2], coordinates[0]);
-    }
 
-    void printInfo() const override
-    {
-        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << "), (" << coordinates[2].first << "," << coordinates[2].second << ")" << endl;
-    }
-
-    
-
-    bool contains(const pair<int,int>& point)const override
+    bool contains(const pair<int, int>& point)const override
     {
         double area = calculateArea(coordinates[0], coordinates[1], coordinates[2]);
         double area1 = calculateArea(point, coordinates[1], coordinates[2]);
@@ -222,11 +210,45 @@ class Triangle : public Figure
         else
         {
             return  area1 == 0 || area2 == 0 || area3 == 0;
-              
         }
-       
     }
 
+    void drawFilled() const
+    {
+        int maxX = max(xy1.first, max(xy2.first, xy3.first));
+        int maxY = max(xy1.second, max(xy2.second, xy3.second));
+        int minX = min(xy1.first, min(xy2.first, xy3.first));
+        int minY = min(xy1.second, min(xy2.second, xy3.second));
+
+        for (int i = minX; i <= maxX; i++)
+        {
+            for (int j = minY; j <= maxY; j++)
+            {
+                if (contains({ i,j }))
+                {
+                    board.putStar(i, j);
+                }
+            }
+        }    
+    }
+
+    void drawFrame()const
+    {
+        drawLine(coordinates[0], coordinates[1]);
+        drawLine(coordinates[1], coordinates[2]);
+        drawLine(coordinates[2], coordinates[0]);
+    }
+
+    void draw() const override
+    {        
+        color != "none"? drawFilled(): drawFrame();    
+    }
+
+    void printInfo() const override
+    {
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << "), (" << coordinates[2].first << "," << coordinates[2].second << ")" << endl;
+    }
+    
     void move(const pair<int, int> move_point) override
     {
         center.first = move_point.first;
@@ -240,6 +262,9 @@ public:
     {
         id = findID();
         calculateCenter();
+        xy1 = coordinates[0];
+        xy2 = coordinates[1];
+        xy3 = coordinates[2];
     }
     
 };
@@ -270,6 +295,13 @@ class PerfectTriangle : public Figure
             int posY = y + i;
             board.putStar(leftMost, posY);
             board.putStar(rightMost, posY);
+            if (color != "none")
+            {
+                for (int j = leftMost; j <= rightMost; j++)
+                {
+                    board.putStar(j, posY);
+                }
+            }
         }
         for (int j = 0; j < 2 * height - 1; ++j) {
             int baseX = x - height + 1 + j;
@@ -283,12 +315,17 @@ class PerfectTriangle : public Figure
     {
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << ")," << ", height - " << height << endl;
     }
-
-    bool contains(const pair<int, int>& point) const override
+    bool contains(const pair<int, int>& point) const override 
     {
-
-        Triangle triangle(coordinates[0], coordinates[1], coordinates[2]);
-        return triangle.contains(point);
+        for (int i = 0; i < height; i++) {
+            int leftMost = coordinates[0].first - i;
+            int rightMost = coordinates[0].first + i;
+            int posY = coordinates[0].second + i;
+            if (point.second == posY && point.first >= leftMost && point.first <= rightMost) {
+                return true;
+            }
+        }
+        return false;
     }
 
     void move(const pair<int, int> move_point) override
@@ -311,19 +348,37 @@ class Rectangle : public Figure
     int width;
     int height;
 
-protected:
-
-     void draw() const override
+    void drawFrame()const
     {
         pair<int, int> xy1(coordinates[0]);
         pair<int, int> xy2(coordinates[0].first, coordinates[0].second + height);
-        pair<int, int> xy3(coordinates[0].first+width, coordinates[0].second);
+        pair<int, int> xy3(coordinates[0].first + width, coordinates[0].second);
         pair<int, int> xy4(coordinates[0].first + width, coordinates[0].second + height);
+
         drawLine(xy1, xy2);
         drawLine(xy2, xy4);
         drawLine(xy4, xy3);
-        drawLine(xy3, xy1); 
+        drawLine(xy3, xy1);
     }
+
+    void drawFilled()const 
+    {
+        for (int i = coordinates[0].first; i < width + coordinates[0].first; i++)
+        {
+            for (int j = coordinates[0].second; j < height + coordinates[0].second; j++)
+            {
+                board.putStar(i, j);
+            }
+        }
+    }
+
+protected:
+
+     void draw() const override
+     {
+         color != "none"? drawFilled(): drawFrame();           
+    }
+
      void printInfo() const override
     {
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), width - " << width << ", height - " << height << endl;
@@ -390,6 +445,21 @@ class Circle : public Figure
 {
     int radius;
     
+    void fillCirclePoints(int xc, int yc, int x, int y) const
+    {
+        for (int i = xc - x * 2; i <= xc + x * 2; i++) 
+        {
+            board.putStar(i, yc + y);  
+            board.putStar(i, yc - y); 
+        }
+       for (int i = xc - y * 2; i <= xc + y * 2; i++) 
+       {
+            board.putStar(i, yc + x);  
+            board.putStar(i, yc - x);  
+        }
+    }
+
+
     void plotCirclePoints(int xc, int yc, int x, int y) const
     {
         board.putStar(xc + x * 2, yc + y);
@@ -402,6 +472,11 @@ class Circle : public Figure
         board.putStar(xc - y * 2, yc - x);
     }
 
+    void draw(int xc, int yc, int x, int y) const
+    {      
+        color != "none"? fillCirclePoints(xc, yc, x, y): plotCirclePoints(xc, yc, x, y);
+    }
+
     void draw() const override
     {
         int xc = coordinates[0].first;
@@ -409,7 +484,7 @@ class Circle : public Figure
         int x = 0;
         int y = radius;
         int d = 1 - radius;  
-        plotCirclePoints(xc, yc, x, y);
+        draw(xc, yc, x, y);
         while (y > x)
         {
             x++;
@@ -422,7 +497,8 @@ class Circle : public Figure
                 y--;
                 d += 2 * (x - y) + 1;  
             }
-            plotCirclePoints(xc, yc, x, y);
+            draw(xc, yc, x, y);
+
         }
     }
 
@@ -583,7 +659,6 @@ public:
         time_figures.push_back(id);
         figure->draw();
         cout << "The figure was added, don't worry!:)" << endl;
-
     }
 
     void undo()
