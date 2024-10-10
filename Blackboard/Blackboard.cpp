@@ -9,11 +9,11 @@
 #include <unordered_set>
 #include <sstream>
 #include <fstream>
-//#include <windows.h>
 #include <cmath>
 #define NOGDI
 #define WIDTH 80
 #define HEIGHT 40
+#include <windows.h>
 #undef max
 #undef min
 using namespace std;
@@ -21,38 +21,66 @@ using namespace std;
 struct Board
 {
     vector<vector<char>> grid;
+    unordered_map<string, int> colors = { {"blue", 1}, {"green", 2}, {"red", 4}, {"purple", 5}, {"yellow", 14}, {"pink", 13},
+        {"grey", 8}, {"white", 15}, {"cyan", 3}, {"none", 7} };
 
-    Board() : grid(HEIGHT, vector<char>(WIDTH, ' ')) {}
+   int getColor(const string& color)const
+   {
 
-    void print()
+       return colors.find(color)->second;
+   }
+
+    Board() : grid(HEIGHT, vector<char>(WIDTH, ' ')){}
+
+    void print() const
     {
         for (auto& row : grid)
         {
            for (char c : row)
             {
-                cout << c;
+               if (c != ' ')
+               {
+                   int color_code = static_cast<int>(c);
+                   c = '*';
+                   color_symbol(color_code);
+                   cout << c;
+                   color_symbol(7);
+               }
+               else
+               {
+                   cout << c;
+               }             
             }
             cout << endl;
         }
     }
+
     void clear()
     {
         for (auto& row : grid)
         {
             fill(row.begin(), row.end(), ' '); 
         }
-    }
-    void putStar(int x, int y) {
-        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
-            grid[y][x] = '*';
-        }
+    } 
+
+    void color_symbol(int code)const
+    {
+        HANDLE console_color = GetStdHandle(STD_OUTPUT_HANDLE);
+        SetConsoleTextAttribute(console_color, code);
+
     }
 
+    void putStar(const int x, const int y, const int color_code) {
+        
+        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) 
+        {
+           grid[y][x] = static_cast<char>(color_code);
+        }
+    }
 };
 
  class Type
 {
-
     static const string convertTypeToNumber(const string& type) 
     {
         int number = 0;
@@ -62,6 +90,7 @@ struct Board
         }
         return to_string(number);
     }
+
 public:
     static const unordered_map<string, string> types;
 
@@ -86,7 +115,8 @@ protected:
     string type;
     string id;
     vector<pair<int, int>> coordinates;
-    string color = "none";
+    int color_code;
+    string color;
 
     const double calculateArea(const pair<int, int>& p1, const pair<int, int>& p2, const pair<int, int>& p3)const
     {
@@ -118,17 +148,14 @@ protected:
 
         while (true) {
             if (x1 == x2 && y1 == y2) break;
-            board.putStar(x1, y1);  
+            board.putStar(x1, y1, color_code);  
             e2 = 2 * err;
             if (e2 >= dy) { err += dy; x1 += sx; } 
             if (e2 <= dx) { err += dx; y1 += sy; } 
         }
     }
 
-
-
     virtual ~Figure() = default;
-
 
 public:
 
@@ -137,8 +164,8 @@ public:
     const string getID() const
     {
         return id;
-
     }
+
     const string getType()const
     {
         return type;
@@ -147,12 +174,15 @@ public:
     virtual bool contains(const pair<int,int>& point) const = 0;
 
 
-    void setType(const string& new_type) {
+    void setType(const string& new_type) 
+    {
         type = new_type;
     }
+
     void setColor(const string& new_color)
     {
         color = new_color;
+        color_code = board.getColor(color);
     }
 
     virtual void printInfo() const = 0;
@@ -164,8 +194,7 @@ public:
         coordinates[0].first = move_point.first;
         coordinates[0].second = move_point.second;
     }
-    ;
-
+    
     bool operator==(const Figure& other) const
     {
         return id == other.id;
@@ -179,7 +208,6 @@ struct HashFunctionForFigure
     {
         return (hash<string>()(figure->getID()));
     }
-
 };
 
 class Triangle : public Figure
@@ -196,14 +224,13 @@ class Triangle : public Figure
         center = make_pair(x, y);
     }
 
-
     bool contains(const pair<int, int>& point)const override
     {
         double area = calculateArea(coordinates[0], coordinates[1], coordinates[2]);
         double area1 = calculateArea(point, coordinates[1], coordinates[2]);
         double area2 = calculateArea(coordinates[0], point, coordinates[2]);
         double area3 = calculateArea(coordinates[0], coordinates[1], point);
-        if (color != "none")
+        if (color_code != 0)
         {
             return (area1 + area2 + area3 == area) || (area1 == 0 || area2 == 0 || area3 == 0);
         }
@@ -226,7 +253,7 @@ class Triangle : public Figure
             {
                 if (contains({ i,j }))
                 {
-                    board.putStar(i, j);
+                    board.putStar(i, j, color_code);
                 }
             }
         }    
@@ -241,7 +268,7 @@ class Triangle : public Figure
 
     void draw() const override
     {        
-        color != "none"? drawFilled(): drawFrame();    
+        color != "none" ? drawFilled() : drawFrame();
     }
 
     void printInfo() const override
@@ -282,32 +309,32 @@ class PerfectTriangle : public Figure
 
         coordinates.push_back({ leftBaseX, baseY });
         coordinates.push_back({ rightBaseX, baseY });
-
     }
 
     void draw() const override {
         int x = coordinates[0].first;
         int y = coordinates[0].second;
 
-        for (int i = 0; i < height; ++i) {
+        for (int i = 0; i < height; i++) 
+        {
             int leftMost = x - i;
             int rightMost = x + i;
             int posY = y + i;
-            board.putStar(leftMost, posY);
-            board.putStar(rightMost, posY);
+            board.putStar(leftMost, posY, color_code);
+            board.putStar(rightMost, posY, color_code);
             if (color != "none")
             {
                 for (int j = leftMost; j <= rightMost; j++)
                 {
-                    board.putStar(j, posY);
+                    board.putStar(j, posY, color_code);
                 }
             }
         }
-        for (int j = 0; j < 2 * height - 1; ++j) {
+        for (int j = 0; j < 2 * height - 1; j++) 
+        {
             int baseX = x - height + 1 + j;
             int baseY = y + height - 1;
-            board.putStar(baseX, baseY);
-
+            board.putStar(baseX, baseY, color_code);
         }
     }
 
@@ -315,6 +342,7 @@ class PerfectTriangle : public Figure
     {
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << ")," << ", height - " << height << endl;
     }
+
     bool contains(const pair<int, int>& point) const override 
     {
         for (int i = 0; i < height; i++) {
@@ -367,7 +395,7 @@ class Rectangle : public Figure
         {
             for (int j = coordinates[0].second; j < height + coordinates[0].second; j++)
             {
-                board.putStar(i, j);
+                board.putStar(i, j, color_code);
             }
         }
     }
@@ -376,63 +404,68 @@ protected:
 
      void draw() const override
      {
-         color != "none"? drawFilled(): drawFrame();           
-    }
+         color != "none" ? drawFilled(): drawFrame();
+     }
 
      void printInfo() const override
-    {
+     {
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), width - " << width << ", height - " << height << endl;
-    }
+     }
 
      bool contains(const pair<int, int>& point)const override
      {
          int x = point.first;
          int y = point.second;
-         if (color != "none") {
+         if (color_code != 0) 
+         {
              return (x >= coordinates[0].first && x <= coordinates[0].first + width &&
                  y >= coordinates[0].second && y <= coordinates[0].second + height);
          }
-         else {
+         else 
+         {
              bool onLeftEdge = (x == coordinates[0].first && y >= coordinates[0].second && y <= coordinates[0].second + height);
              bool onRightEdge = (x == coordinates[0].first + width && y >= coordinates[0].second && y <= coordinates[0].second + height);
              bool onTopEdge = (y == coordinates[0].second && x >= coordinates[0].first && x <= coordinates[0].first + width);
              bool onBottomEdge = (y == coordinates[0].second + height && x >= coordinates[0].first && x <= coordinates[0].first + width);
              return onLeftEdge || onRightEdge || onTopEdge || onBottomEdge;
-         }
-        
-    }
+         }       
+     }
+
      void move(const pair<int, int> move_point) override
      {
          Figure::move(move_point);
 
      }
+
 public:
     Rectangle(const pair<int,int>& top_left_point, int w, int h) : Figure(vector<pair<int, int>>{top_left_point}, "rectangle"), width(w), height(h)
     {
         id = findID() + to_string(width) + to_string(height);
     }
-
-
-
 };
+
 class Square : public Rectangle
 {
     void draw() const override
     {
         Rectangle::draw();
     }
+
     void printInfo()const override
     {
         Rectangle::printInfo();
     }
+
     bool contains(const pair<int, int>& point)const override
     {
         return Rectangle::contains(point);
     }
+
     void move(const pair<int, int> move_point) override
     {
         Rectangle::move(move_point);
     }
+
 public:
     Square(const pair<int, int>& top_left_point, int side_length) : Rectangle(top_left_point, side_length, side_length)
     {
@@ -449,32 +482,32 @@ class Circle : public Figure
     {
         for (int i = xc - x * 2; i <= xc + x * 2; i++) 
         {
-            board.putStar(i, yc + y);  
-            board.putStar(i, yc - y); 
+            board.putStar(i, yc + y, color_code);
+            board.putStar(i, yc - y, color_code);
         }
+
        for (int i = xc - y * 2; i <= xc + y * 2; i++) 
        {
-            board.putStar(i, yc + x);  
-            board.putStar(i, yc - x);  
-        }
+            board.putStar(i, yc + x, color_code);
+            board.putStar(i, yc - x, color_code);
+       }
     }
-
 
     void plotCirclePoints(int xc, int yc, int x, int y) const
     {
-        board.putStar(xc + x * 2, yc + y);
-        board.putStar(xc - x * 2, yc + y);
-        board.putStar(xc + x * 2, yc - y);
-        board.putStar(xc - x * 2, yc - y);
-        board.putStar(xc + y * 2, yc + x);
-        board.putStar(xc - y * 2, yc + x);
-        board.putStar(xc + y * 2, yc - x);
-        board.putStar(xc - y * 2, yc - x);
+        board.putStar(xc + x * 2, yc + y, color_code);
+        board.putStar(xc - x * 2, yc + y, color_code);
+        board.putStar(xc + x * 2, yc - y, color_code);
+        board.putStar(xc - x * 2, yc - y, color_code);
+        board.putStar(xc + y * 2, yc + x, color_code);
+        board.putStar(xc - y * 2, yc + x, color_code);
+        board.putStar(xc + y * 2, yc - x, color_code);
+        board.putStar(xc - y * 2, yc - x, color_code);
     }
 
     void draw(int xc, int yc, int x, int y) const
     {      
-        color != "none"? fillCirclePoints(xc, yc, x, y): plotCirclePoints(xc, yc, x, y);
+        color != "none" ? fillCirclePoints(xc, yc, x, y): plotCirclePoints(xc, yc, x, y);
     }
 
     void draw() const override
@@ -498,7 +531,6 @@ class Circle : public Figure
                 d += 2 * (x - y) + 1;  
             }
             draw(xc, yc, x, y);
-
         }
     }
 
@@ -511,7 +543,7 @@ class Circle : public Figure
     {
         int x = point.first;
         int y = point.second;
-        if (color != "none")
+        if (color_code != 0)
         {
             return pow(x - coordinates[0].first, 2) + pow(y - coordinates[0].second, 2) <= pow(radius, 2);
         }
@@ -520,11 +552,12 @@ class Circle : public Figure
             return pow(x - coordinates[0].first, 2) + pow(y - coordinates[0].second, 2) == pow(radius, 2);
         }
     }
+
     void move(const pair<int, int> move_point) override
     {
         Figure::move(move_point);
-
     }
+
 public:
 
     Circle(const pair<int, int>& center, int r) : Figure(vector<pair<int, int>>{center}, "circle"), radius(r) 
@@ -546,12 +579,14 @@ class Line : public Figure
         int y = (coordinates[0].second + coordinates[1].second) / 2;
         center = make_pair(x, y);
     }
+
     void draw() const override
     {
         pair<int, int> xy1 = coordinates[0];
         pair<int, int> xy2 = coordinates[1];
         drawLine(xy1, xy2);
     }
+
     void printInfo() const override
     {
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << ")" << endl;
@@ -564,13 +599,14 @@ class Line : public Figure
 
         double area = calculateArea(point, coordinates[0], coordinates[1]);
         return onSegment && area == 0;
-
     }
+
     void move(const pair<int, int> move_point) override
     {
         center.first = move_point.first;
         center.second = move_point.second;
     }
+
 public:
 
     Line(const pair<int, int>& p1, const pair<int, int>& p2) : Figure(vector<pair<int, int>> {p1, p2}, "line")
@@ -631,7 +667,6 @@ class Commands
             auto figure = dynamic_pointer_cast<Rectangle>(selected_figure);
         }
     }*/ 
-
 
 public:
 
@@ -756,7 +791,6 @@ public:
 
     void selectByID(const string& id)
     {
-        selected_figure = nullptr;
         if (checkIfFigureExists(id))
         {
             shared_ptr<Figure> figure = figures.find(id)->second;
@@ -767,7 +801,6 @@ public:
 
     void selectByCoordinates(const pair<int, int>& point)
     {
-        selected_figure = nullptr;
         for (int i = time_figures.size() - 1; i >= 0; i--)
         {
             string id = time_figures[i];
@@ -782,10 +815,11 @@ public:
         cout << "No figures at this point!" << endl;
     }
 
-    void paint(const string& color)
+    void paint(const string&  color)
     {
         selected_figure->setColor(color);
-        cout << "The selected figure was painted with a " << color << "color" << endl;
+        drawTheBoard();
+        cout << "The selected figure was painted with a " << color << " color" << endl;
 
     }
 
@@ -796,6 +830,10 @@ public:
         time_figures.erase(find(time_figures.begin(), time_figures.end(), id));
         time_figures.push_back(id);
         drawTheBoard();     
+    }
+    void edit()
+    {
+
     }
 };
 
@@ -879,7 +917,8 @@ class UserInput
         return false;
     }
 
-    bool isWithinBounds(int x, int y) {
+    bool isWithinBounds(int x, int y) 
+    {
         return x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT;
     }
 
@@ -966,21 +1005,21 @@ class UserInput
 
     bool validateColor(const string& color) const
     {
-        if (!isLetters(color))
+        if (!isLetters(color) || board.colors.find(color) == board.colors.end())
         {
             cout << "This color is not available!" << endl;
             return false;
         }
         return true;
     }
-
+    
     void processShape(istringstream& my_stream, const string& shape) 
     {
         string color;
         if (!getColorIfAny(my_stream, color))
         {
             return;
-        }            
+        }  
         if (shape == "circle") 
         {
             processCircle(my_stream, color);
@@ -1040,10 +1079,9 @@ class UserInput
     }
 
     void move(istringstream& my_stream)
-    {
-      
+    {      
         int x, y;
-        if (checkTwoParam(my_stream, x, y))
+        if (!checkTwoParam(my_stream, x, y))
         {
             cout << "Incorrect input!" << endl;
             return;
