@@ -16,6 +16,7 @@
 #include <windows.h>
 #undef max
 #undef min
+#define DEFAULT_COLOR_CODE 7
 using namespace std;
 
 struct Board
@@ -44,13 +45,13 @@ struct Board
                    c = '*';
                    color_symbol(color_code);
                    cout << c;
-                   color_symbol(7);
+                   color_symbol(DEFAULT_COLOR_CODE);
                }
                else
                {
                    cout << c;
                }             
-            }
+           }
             cout << endl;
         }
     }
@@ -93,7 +94,6 @@ struct Board
 
 public:
     static const unordered_map<string, string> types;
-
 };
 
  const unordered_map<string, string> Type::types = 
@@ -110,12 +110,11 @@ static Board board;
 
 class Figure
 {
-
 protected:
     string type;
     string id;
     vector<pair<int, int>> coordinates;
-    int color_code;
+    int color_code = DEFAULT_COLOR_CODE;
     string color;
 
     const double calculateArea(const pair<int, int>& p1, const pair<int, int>& p2, const pair<int, int>& p3)const
@@ -133,8 +132,7 @@ protected:
         id += Type::types.at(type);
         return id; 
     }
-
-    
+  
     void drawLine( const pair<int, int>& xy1, const pair<int, int>& xy2) const
     {
         int x1 = xy1.first;
@@ -189,11 +187,7 @@ public:
     
     virtual void draw() const = 0; 
 
-    virtual void move(const pair<int, int> move_point)
-    {
-        coordinates[0].first = move_point.first;
-        coordinates[0].second = move_point.second;
-    }
+    virtual void move(const pair<int, int> move_point) = 0;
     
     bool operator==(const Figure& other) const
     {
@@ -212,6 +206,7 @@ struct HashFunctionForFigure
 
 class Triangle : public Figure
 {
+    friend class PerfectTriangle;
     pair<int, int> center;
     pair<int, int> xy1;
     pair<int, int> xy2;
@@ -298,7 +293,7 @@ public:
 class PerfectTriangle : public Figure
 {
     int height;
-
+    pair<int, int> center;
     void resolveCoordinates()
     {
         int x = coordinates[0].first;
@@ -345,20 +340,15 @@ class PerfectTriangle : public Figure
 
     bool contains(const pair<int, int>& point) const override 
     {
-        for (int i = 0; i < height; i++) {
-            int leftMost = coordinates[0].first - i;
-            int rightMost = coordinates[0].first + i;
-            int posY = coordinates[0].second + i;
-            if (point.second == posY && point.first >= leftMost && point.first <= rightMost) {
-                return true;
-            }
-        }
-        return false;
+        Triangle triangle(coordinates[0], coordinates[1], coordinates[2]);
+        return triangle.contains(point);
     }
 
     void move(const pair<int, int> move_point) override
     {
-        Figure::move(move_point);
+        Triangle triangle(coordinates[0], coordinates[1], coordinates[2]);
+
+        triangle.move(move_point);
     }
 
 public:
@@ -368,13 +358,30 @@ public:
         id = findID() + to_string(height);
         resolveCoordinates();
     }
+
+    void edit(const int new_height)
+    {
+        height = new_height;
+    }
+
 };
 
 
 class Rectangle : public Figure
 {
+protected:
+
     int width;
     int height;
+
+private:
+    pair<int, int> center;
+
+    void findCenter()
+    {
+        center.first = (coordinates[0].first + coordinates[1].first) / 2;
+        center.second = (coordinates[0].second + coordinates[1].second) / 2;
+    }
 
     void drawFrame()const
     {
@@ -433,14 +440,21 @@ protected:
 
      void move(const pair<int, int> move_point) override
      {
-         Figure::move(move_point);
-
+         center.first = move_point.first;
+         center.second = move_point.second;
      }
 
 public:
+
     Rectangle(const pair<int,int>& top_left_point, int w, int h) : Figure(vector<pair<int, int>>{top_left_point}, "rectangle"), width(w), height(h)
     {
         id = findID() + to_string(width) + to_string(height);
+    }
+
+    void edit(const int new_width, const int new_height)
+    {
+        width = new_width;
+        height = new_height;
     }
 };
 
@@ -471,6 +485,11 @@ public:
     {
         setType("square");
         id = findID() + to_string(side_length);
+    }
+
+    void edit(const int new_side_length)
+    {
+        height, width = new_side_length;      
     }
 };
 
@@ -555,7 +574,8 @@ class Circle : public Figure
 
     void move(const pair<int, int> move_point) override
     {
-        Figure::move(move_point);
+        coordinates[0].first = move_point.first;
+        coordinates[0].second = move_point.second;
     }
 
 public:
@@ -565,8 +585,11 @@ public:
         id = findID() + to_string(radius);
     }
 
+    void edit(const int new_radius)
+    {
+        radius = new_radius;
+    }
 };
-
 
 class Line : public Figure
 {
@@ -613,20 +636,20 @@ public:
     {
         id = findID();
     }
+    
 };
 
 class Commands
 {
     vector<string> time_figures;
     unordered_map<string, shared_ptr<Figure>> figures;
-    shared_ptr<Figure> selected_figure;
 
     void drawTheBoard()
     {
         board.clear();
-        for (auto& figure : figures)
+        for (int i = 0; i < time_figures.size(); i++)
         {
-            figure.second->draw();
+            figures.find(time_figures[i])->second->draw();
         }
     }
 
@@ -640,35 +663,34 @@ class Commands
         return true;
     }
     
-   /*void castFigureToType()
-    {
-        if (selected_figure->getType() == "circle")
-        {
-            auto figure = dynamic_pointer_cast<Circle>(selected_figure);
-        }
-        else if (selected_figure->getType() == "triangle")
-        {
-            auto figure = dynamic_pointer_cast<Triangle>(selected_figure);
-        }
-        else if (selected_figure->getType() == "perfect triangle")
-        {
-            auto figure = dynamic_pointer_cast<PerfectTriangle>(selected_figure);
-        }
-        else if (selected_figure->getType() == "line")
-        {
-            auto figure = dynamic_pointer_cast<Line>(selected_figure);
-        }
-        else if (selected_figure->getType() == "square")
-        {
-            auto figure = dynamic_pointer_cast<Square>(selected_figure);
-        }
-        else if (selected_figure->getType() == "rectangle")
-        {
-            auto figure = dynamic_pointer_cast<Rectangle>(selected_figure);
-        }
-    }*/ 
-
 public:
+    shared_ptr<Figure> selected_figure;
+
+    void help()
+    {
+        cout << "There are 15 commands developed explicitly for you:\n"
+            << "* draw: view your blackboard with the figures added.\n"
+            << "* add FIGURE PARAMETERS || add FIGURE_TYPE fill COLOR PARAMETERS: add a new figure to the blackboard (check the 'shapes' command to use this command correctly). You have a noption of specifying a coolor of the figure. If you don't, the color will be defaulted to 'none'.\n"
+            << "* shapes: this is list of all available shapes and their parameters, specially designed to assist you in using the 'add' command.\n"
+            << "* clear: clear all content from the board.\n"
+            << "* undo: remove the last added figure.\n"
+            << "* list: view the list of all added figures along with relevant information about them.\n"
+            << "* load FILE_PATH: load a blackboard from your file. Be cautious, as the board must meet the following requirements: symbols can be either ' ' or '*', a maximum width of the board 80 and a height of 40.\n"
+            << "* save FILE_PATH: save your blackboard to the specified file.\n"
+            << "* help: get assistance with using the commands.\n"
+            << "* exit: finish your work here.\n"
+            << "* remove ID: remove the figure by specifying its id.\n"
+            << "* move X Y: move previously selected figure to the specified point. Note: all points are moved regarding to their centers except for a rectangle, which is moved by its top-left point, and a perfect triangle, which is moved regarding to its vertex.\n"
+            << "* paint COLOR: paint previously selected figure with a specified color.\n"
+            << "* select ID | select X Y: select a particular figure from the board. You can do that with a help of the figure's id. Additionally, you can specify a point, that belongs to that figure. Note: in case of specifying a point, the forground figure will be selected!\n"
+            << "* edit: change the previously selected figure in a way that you prefere.\n";
+    }
+
+    void exit(bool& exit_flag)
+    {
+        cout << "Thanks for using my program:) Have a good rest of your life:)" << endl;
+        exit_flag = true;
+    }
 
     void viewAvailableShapes() const
     {
@@ -709,6 +731,7 @@ public:
         figures.clear();
         time_figures.clear();
         board.clear();
+        cout << "The board was cleared, suit yourself!" << endl;
     }
 
     void draw()
@@ -786,7 +809,7 @@ public:
             time_figures.erase(find(time_figures.begin(), time_figures.end(), id));
             drawTheBoard();
             cout << "The figure was removed successully!" << endl;
-        }    
+        } 
     }
 
     void selectByID(const string& id)
@@ -812,15 +835,14 @@ public:
                 return;
             }
         }
-        cout << "No figures at this point!" << endl;
+        cout << "No figures at this point yet!" << endl;
     }
 
     void paint(const string&  color)
     {
         selected_figure->setColor(color);
         drawTheBoard();
-        cout << "The selected figure was painted with a " << color << " color" << endl;
-
+        cout << "The selected figure became " << color << "!" << endl;
     }
 
     void move(const pair<int,int>& pointToMove)
@@ -830,10 +852,33 @@ public:
         time_figures.erase(find(time_figures.begin(), time_figures.end(), id));
         time_figures.push_back(id);
         drawTheBoard();     
+        cout << "The selected figure was moved!" << endl;
     }
-    void edit()
-    {
 
+    void edit(const vector<int>& parameters)
+    {
+        if (selected_figure->getType() == "circle")
+        {
+            shared_ptr<Circle> circle = dynamic_pointer_cast<Circle>(selected_figure);
+            circle->edit(parameters[0]);
+        }
+        else if (selected_figure->getType() == "square")
+        {
+            shared_ptr<Square> square = dynamic_pointer_cast<Square>(selected_figure);
+            square->edit(parameters[0]);
+        }
+        else if (selected_figure->getType() == "rectangle")
+        {
+            shared_ptr<Rectangle> rectangle = dynamic_pointer_cast<Rectangle>(selected_figure);
+            rectangle->edit(parameters[0], parameters[1]);
+        }
+        else if (selected_figure->getType() == "perfect triangle")
+        {
+            shared_ptr<PerfectTriangle> perfect_triangle = dynamic_pointer_cast<PerfectTriangle>(selected_figure);
+            perfect_triangle->edit(parameters[0]);
+        }
+        drawTheBoard();
+        cout << "The selected figure was edited!" << endl;
     }
 };
 
@@ -843,14 +888,15 @@ class UserInput
     string userInput;
     bool exit_flag = false;
     string previous_command = "";
+    unordered_set<string> commandsWithoutParam = { "help", "exit", "list", "shapes", "clear", "draw", "undo" };
     
     bool checkForParameters(const istringstream& my_stream)const
     {
          if (my_stream.eof())
-            {
-                cout << "This command does need parameters!" << endl;
-                return false;
-            }
+         {
+             cout << "This command does need parameters!" << endl;
+             return false;
+         }
         return true;
     }
 
@@ -908,7 +954,17 @@ class UserInput
         return false;
     }
 
-    bool checkTwoParam(istringstream& my_stream, int& x, int& y)
+    bool checkOneParam(istringstream& my_stream, int& value) const 
+    {
+        if (my_stream >> value && value >= 0 && value < WIDTH)
+        {
+            return checkForParametersEnd(my_stream);
+
+        }
+        return false;
+    }
+
+    bool checkTwoParam(istringstream& my_stream, int& x, int& y) 
     {
         if (my_stream >> x >> y  && isWithinBounds(x,y))
         {
@@ -1048,9 +1104,11 @@ class UserInput
             cout << "This shape is not available right now!" << endl;
         }
     }
+
     void checkReturnValue(istringstream& my_stream, string& value) const
     {
-        if (!checkForParameters(my_stream)) {
+        if (!checkForParameters(my_stream)) 
+        {
             return;
         }
         my_stream >> value;
@@ -1058,7 +1116,8 @@ class UserInput
 
     void add(istringstream& my_stream) 
     {
-        if (!checkForParameters(my_stream)) {
+        if (!checkForParameters(my_stream)) 
+        {
             return;
         }
         string shape;
@@ -1166,40 +1225,54 @@ class UserInput
         }
     }
 
+    void edit(istringstream& my_stream)
+    {
+        if (!checkForParameters(my_stream))
+        {
+            return;
+        }
+        vector<int> parameters;
+        string type = action.selected_figure->getType();
+        if (type == "square" || type == "circle" || type == "perfect triangle")
+        {
+            int value;
+            if (!checkOneParam(my_stream, value))
+            {
+                cout << "Incorrect parameters for edition!" << endl;
+                return;
+            }
+            parameters.push_back(value);
+        }
+        else if (type == "rectangle")
+        {
+            int width, height;
+            if (!checkTwoParam(my_stream, width, height))
+            {
+                cout << "Incorrect parameters for edition!" << endl;
+                return;
+            }
+            parameters.push_back(width);
+            parameters.push_back(height);
+        }
+        else
+        {
+            cout << "Unfortunately, you don not have permissions to modify this figure :(" << endl;
+            return;
+        }
+        if (!checkForParametersEnd(my_stream))
+        {
+            cout << "This command already has enough parameters!" << endl;
+            return;
+        }
+        action.edit(parameters);
+    }
+
     void clearScreenAndPrompt() 
     {
         cout << "Press Enter to continue..." << endl;
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
         system("cls");
     }
-
-    void help()
-    {
-        cout << "There are 15 commands developed explicitly for you:\n"
-            << "* draw: view your blackboard with the figures added.\n"
-            << "* add FIGURE PARAMETERS || add FIGURE_TYPE fill COLOR PARAMETERS: add a new figure to the blackboard (check the 'shapes' command to use this command correctly). You have a noption of specifying a coolor of the figure. If you don't, the color will be defaulted to 'none'.\n"
-            << "* shapes: this is list of all available shapes and their parameters, specially designed to assist you in using the 'add' command.\n"
-            << "* clear: clear all content from the board.\n"
-            << "* undo: remove the last added figure.\n"
-            << "* list: view the list of all added figures along with relevant information about them.\n"
-            << "* load FILE_PATH: load a blackboard from your file. Be cautious, as the board must meet the following requirements: symbols can be either ' ' or '*', a maximum width of the board 80 and a height of 40.\n"
-            << "* save FILE_PATH: save your blackboard to the specified file.\n"
-            << "* help:get assistance with using the commands.\n"
-            << "* exit: finish your work here.\n"
-            << "* remove ID: remove the figure by specifying its id.\n"
-            << "* move X Y: move previously selected figure to the specified point. Note: all points are moved regarding to their centers except for a rectangle, which is moved by its top-left point, and a perfect triangle, which is moved regarding to its vertex.\n"
-            << "* paint COLOR: paint previously selected figure with a specified color.\n"
-            << "* select ID | select X Y: select a particular figure from the board. You can do that with a help of the figure's id. Additionally, you can specify a point, that belongs to that figure. Note: in case of specifying a point, the forground figure will be selected!\n"
-            << "* edit: change the previously selected figure in a way that you prefere.\n";
-    }
-
-    void exit()
-    {
-        cout << "Thanks for using my program:) Have a good rest of your life:)" << endl;
-        exit_flag = true;
-    }
-
-    unordered_set<string> commandsWithoutParam = { "help", "exit", "list", "shapes", "clear", "draw", "undo" };
 
     void takeUserInput()
     {
@@ -1254,11 +1327,11 @@ class UserInput
         }    
         else if (command == "help")
         {
-            help();
+            action.help();
         }
         else if (command == "exit")
         {
-            exit();
+            action.exit(exit_flag);
         }
         else if (command == "remove")
         {
@@ -1278,7 +1351,7 @@ class UserInput
         }
         else if (command == "edit")
         {
-
+            edit(my_stream);
         }
         else
         {
