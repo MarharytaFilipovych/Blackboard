@@ -168,7 +168,8 @@ public:
     {
         return type;
     }
-
+    virtual void regenerateID() = 0;
+    
     virtual bool contains(const pair<int,int>& point) const = 0;
 
 
@@ -183,6 +184,10 @@ public:
         color_code = board.getColor(color);
     }
 
+    const string getColor()const
+    {
+        return color;
+    }
     virtual void printInfo() const = 0;
     
     virtual void draw() const = 0; 
@@ -277,6 +282,11 @@ class Triangle : public Figure
         center.second = move_point.second;
     }
 
+    void regenerateID() override
+    {
+        id = findID();
+    }
+
 public:
 
     Triangle(const pair<int, int>& p1, const pair<int, int>& p2, const pair<int, int>& p3)
@@ -351,6 +361,11 @@ class PerfectTriangle : public Figure
         triangle.move(move_point);
     }
 
+    void regenerateID() override
+    {
+        id = findID() + to_string(height);;
+    }
+
 public:
 
     PerfectTriangle(const pair<int, int>& vertex, int h) : Figure(vector<pair<int, int>>{vertex}, "perfect triangle"), height(h)
@@ -406,7 +421,10 @@ private:
             }
         }
     }
-
+    void regenerateID() override
+    {
+        id = findID() + to_string(width) + to_string(height);
+    }
 protected:
 
      void draw() const override
@@ -478,6 +496,11 @@ class Square : public Rectangle
     void move(const pair<int, int> move_point) override
     {
         Rectangle::move(move_point);
+    }
+
+    void regenerateID() override
+    {
+        id = findID() + to_string(width);
     }
 
 public:
@@ -578,6 +601,11 @@ class Circle : public Figure
         coordinates[0].second = move_point.second;
     }
 
+    void regenerateID() override
+    {
+        id = findID() + to_string(radius);
+    }
+
 public:
 
     Circle(const pair<int, int>& center, int r) : Figure(vector<pair<int, int>>{center}, "circle"), radius(r) 
@@ -628,6 +656,11 @@ class Line : public Figure
     {
         center.first = move_point.first;
         center.second = move_point.second;
+    }
+
+    void regenerateID() override
+    {
+        id = findID();
     }
 
 public:
@@ -715,7 +748,6 @@ public:
         figures.emplace(id, figure);
         time_figures.push_back(id);
         figure->draw();
-        cout << "The figure was added, don't worry!:)" << endl;
     }
 
     void undo()
@@ -808,7 +840,6 @@ public:
             figures.erase(id);
             time_figures.erase(find(time_figures.begin(), time_figures.end(), id));
             drawTheBoard();
-            cout << "The figure was removed successully!" << endl;
         } 
     }
 
@@ -824,6 +855,11 @@ public:
 
     void selectByCoordinates(const pair<int, int>& point)
     {
+        if (board.grid[point.second][point.first] == ' ')
+        {
+            cout << "No figures at this point yet!" << endl;
+            return;
+        }
         for (int i = time_figures.size() - 1; i >= 0; i--)
         {
             string id = time_figures[i];
@@ -835,7 +871,6 @@ public:
                 return;
             }
         }
-        cout << "No figures at this point yet!" << endl;
     }
 
     void paint(const string&  color)
@@ -877,6 +912,7 @@ public:
             shared_ptr<PerfectTriangle> perfect_triangle = dynamic_pointer_cast<PerfectTriangle>(selected_figure);
             perfect_triangle->edit(parameters[0]);
         }
+        selected_figure->regenerateID();
         drawTheBoard();
         cout << "The selected figure was edited!" << endl;
     }
@@ -1123,6 +1159,7 @@ class UserInput
         string shape;
         getShape(shape, my_stream);
         processShape(my_stream, shape);
+        cout << "The figure was added, don't worry!:)" << endl;
     }
 
     void remove(istringstream& my_stream)
@@ -1135,6 +1172,7 @@ class UserInput
             cout << "This command already has enough parameters!" << endl;
             return;
         }
+        cout << "The figure was removed successully!" << endl;
     }
 
     void move(istringstream& my_stream)
@@ -1254,10 +1292,15 @@ class UserInput
             parameters.push_back(width);
             parameters.push_back(height);
         }
-        else
+        else if (type == "triangle")
         {
-            cout << "Unfortunately, you don not have permissions to modify this figure :(" << endl;
-            return;
+            action.remove(action.selected_figure->getID());
+            processTriangle(my_stream, action.selected_figure->getColor());
+        }
+        else if (type == "line")
+        {
+            action.remove(action.selected_figure->getID());
+            processLine(my_stream, action.selected_figure->getColor());
         }
         if (!checkForParametersEnd(my_stream))
         {
