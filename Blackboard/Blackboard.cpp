@@ -766,11 +766,14 @@ public:
             << "* help: get assistance with using the commands.\n"
             << "* exit: finish your work here.\n"
             << "* remove ID: remove the figure by specifying its id.\n"
-            << "* move X Y: move previously selected figure to the specified point. Note: all points are moved regarding to their centers except for a rectangle, which is moved by its top-left point, and a perfect triangle, which is moved regarding to its vertex.\n"
+            << "* move X Y: move previously selected figure to the specified point. Note: all points are moved regarding to their centers.\n"
             << "* paint COLOR: paint previously selected figure with a specified color.\n"
             << "* select ID | select X Y: select a particular figure from the board. You can do that with a help of the figure's id. Additionally, you can specify a point, that belongs to that figure. Note: in case of specifying a point, the forground figure will be selected!\n"
-            << "* edit: change the previously selected figure in a way that you prefere.\n"
-            << "* colors: look at the list of available colors." << endl;;
+            << "* edit: change the previously selected figure.\n"
+            << "* colors: look at the list of available colors." << endl;
+        cout << "Edit instruction: You may change a radius of a circle, a side length of a square, width and height of a rectangle or\n" <<
+            "a height of a perfect triangle. You are not permitted to  change coordinates of a simple triangle or a line.\n" <<
+            "If you wish to change them, delete previous ones and create new ones!" << endl;
     }
 
     void exit(bool& exit_flag)
@@ -1304,39 +1307,33 @@ class UserInput
         command == "load"? action.load(file_path): action.save(file_path);
     }
 
-    void processFiguresWithOneParamForEdit(istringstream& my_stream, vector<int>& parameters)
+    bool processFiguresWithOneParamForEdit(istringstream& my_stream, vector<int>& parameters)
     {
         int value;
         if (!checkOneParam(my_stream, value))
         {
             cout << "Incorrect parameters for edition!" << endl;
-            return;
+            return false;
         }
         parameters.push_back(value);
+        return true;
     }
 
-    void processFiguresWithTwoParamsForEdit(istringstream& my_stream, vector<int>& parameters)
+    bool processFiguresWithTwoParamsForEdit(istringstream& my_stream, vector<int>& parameters)
     {
         int width, height;
         if (!checkTwoParam(my_stream, width, height))
         {
             cout << "Incorrect parameters for edition!" << endl;
-            return;
+            return false;
         }
         parameters.push_back(width);
         parameters.push_back(height);
-    }
-
-    void displayEditInstruction()const
-    {
-        cout << "You may change a radius of a circle, a side length of a square, width and height of a rectangle or\n" <<
-            "a height of a perfect triangle. You are not permitted to  change coordinates of a simple triangle or a line.\n" <<
-            "If you wish to change them, delete previous ones and create new ones!" << endl;;
+        return true;
     }
 
     void edit(istringstream& my_stream)
     {
-        displayEditInstruction();
         bool removed = false;
         if (!checkForParameters(my_stream))
         {
@@ -1346,15 +1343,16 @@ class UserInput
         string type = action.selected_figure->getType();
         if (type == "square" || type == "circle" || type == "perfect triangle")
         {
-            processFiguresWithOneParamForEdit(my_stream, parameters);
+            if (!processFiguresWithOneParamForEdit(my_stream, parameters)) { return; };
         }
         else if (type == "rectangle")
         {
-            processFiguresWithTwoParamsForEdit(my_stream, parameters);
+            if (!processFiguresWithTwoParamsForEdit(my_stream, parameters)) { return; }
         }
         else
         {
             cout << "You are not allowed to modify this fogure!" << endl;
+            return;
         }
         if (!checkForParametersEnd(my_stream))
         {
