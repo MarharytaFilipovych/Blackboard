@@ -22,8 +22,8 @@ using namespace std;
 struct Board
 {
     vector<vector<char>> grid;
-    unordered_map<string, int> colors = { {"blue", 1}, {"green", 2}, {"red", 4}, {"purple", 5}, {"yellow", 6},
-        {"grey", 8}, {"white", 15},{"light-blue", 9}, { "cyan", 3 }, {"none", 7}, {"pink", 13} };
+    unordered_map<string, int> colors = {{"blue", 1},{"green", 2},{"cyan", 3},{"red", 4},{"purple", 5},{"yellow", 6},{"none", 7},
+     {"grey", 8},{"bright-blue", 9},{"bright-green", 10},{"bright-cyan", 11},{"bright-red", 12},{"pink", 13},{"bright-yellow", 14}, {"white", 15}};
 
     unordered_set<char> possible_board_symbols; 
 
@@ -726,11 +726,33 @@ class Commands
         return true;
     }
 
-    
+    void changeID()
+    {
+        string old_id = selected_figure->getID();
+        figures.erase(old_id);
+        selected_figure->regenerateID();
+        string new_id = selected_figure->getID();
+        figures.emplace(new_id, selected_figure);
+        auto it = find(time_figures.begin(), time_figures.end(), old_id);
+        size_t index = distance(time_figures.begin(), it);
+        time_figures[index] = new_id;
+    }
+
+    void changeIDAndMakeForeground()
+    {
+        string old_id = selected_figure->getID();
+        time_figures.erase(find(time_figures.begin(), time_figures.end(), old_id));
+        figures.erase(old_id);
+        selected_figure->regenerateID();
+        string new_id = selected_figure->getID();
+        figures.emplace(new_id, selected_figure);
+        time_figures.push_back(new_id);
+    }
+
 public:
     shared_ptr<Figure> selected_figure;
 
-    void help()
+    void help()const
     {
         cout << "There are 15 commands developed explicitly for you:\n"
             << "* draw: view your blackboard with the figures added.\n"
@@ -747,7 +769,8 @@ public:
             << "* move X Y: move previously selected figure to the specified point. Note: all points are moved regarding to their centers except for a rectangle, which is moved by its top-left point, and a perfect triangle, which is moved regarding to its vertex.\n"
             << "* paint COLOR: paint previously selected figure with a specified color.\n"
             << "* select ID | select X Y: select a particular figure from the board. You can do that with a help of the figure's id. Additionally, you can specify a point, that belongs to that figure. Note: in case of specifying a point, the forground figure will be selected!\n"
-            << "* edit: change the previously selected figure in a way that you prefere.\n";
+            << "* edit: change the previously selected figure in a way that you prefere.\n"
+            << "* colors: look at the list of available colors." << endl;;
     }
 
     void exit(bool& exit_flag)
@@ -779,6 +802,7 @@ public:
         figures.emplace(id, figure);
         time_figures.push_back(id);
         figure->draw();
+        cout << "Your figure was added :)))))))" << endl;
     }
 
     void undo()
@@ -797,18 +821,25 @@ public:
         cout << "The board was cleared, suit yourself!" << endl;
     }
 
-    void draw()
+    void draw()const
     {
         system("cls");       
         board.print(); 
     }
     
-    void list()
+    void list()const
     {
         for (const auto& figure : figures)
         {
             figure.second->printInfo();
         }
+    }
+
+    void seeColors()const
+    {
+        cout << "You can use these colors: blue, green, cyan, red, purple,\n" <<
+           "yellow, grey, bright - blue, bright - green, bright - cyan, bright - red, pink, bright - yellow, white.\n"<< 
+            "BTW: you can create figures without a color (like frames). " << endl;
     }
 
     void save(const string& file_path)
@@ -865,13 +896,14 @@ public:
         cout << "The board was loaded successfully!" << endl;
     }
 
-    void remove(const string& id)
+    void remove(const string& id, bool& removed_successfully)
     {
         if (checkIfFigureExists(id))
         {
             figures.erase(id);
             time_figures.erase(find(time_figures.begin(), time_figures.end(), id));
             drawTheBoard();
+            removed_successfully = true;
         } 
     }
 
@@ -911,13 +943,11 @@ public:
         drawTheBoard();
         cout << "The selected figure became " << color << "!" << endl;
     }
-
+   
     void move(const pair<int,int>& pointToMove)
     {
         selected_figure->move(pointToMove);
-        string id = selected_figure->getID();
-        time_figures.erase(find(time_figures.begin(), time_figures.end(), id));
-        time_figures.push_back(id);
+        changeIDAndMakeForeground();
         drawTheBoard();     
         cout << "The selected figure was moved!" << endl;
     }
@@ -944,7 +974,7 @@ public:
             shared_ptr<PerfectTriangle> perfect_triangle = dynamic_pointer_cast<PerfectTriangle>(selected_figure);
             perfect_triangle->edit(parameters[0]);
         }
-        selected_figure->regenerateID();
+        changeID();
         drawTheBoard();
         cout << "The selected figure was edited!" << endl;
     }
@@ -956,7 +986,7 @@ class UserInput
     string userInput;
     bool exit_flag = false;
     string previous_command = "";
-    unordered_set<string> commandsWithoutParam = { "help", "exit", "list", "shapes", "clear", "draw", "undo" };
+    unordered_set<string> commandsWithoutParam = { "help", "exit", "list", "shapes", "clear", "draw", "undo", "colors"};
     
     bool checkForParameters(const istringstream& my_stream)const
     {
@@ -966,11 +996,6 @@ class UserInput
              return false;
          }
         return true;
-    }
-
-    bool isLetters(const string& data) const
-    {
-        return all_of(data.begin(), data.end(), ::isalpha);
     }
 
     bool isDigits(const string& data) const
@@ -1046,7 +1071,7 @@ class UserInput
         return x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT;
     }
 
-    void processCircle(istringstream& my_stream, const string& color) 
+    void processCircle(istringstream& my_stream, const string& color)
     {
         int x, y, radius;
         if (!checkFigureWithThreeParam(my_stream, x, y, radius) || !isWithinBounds(x, y) || radius < 0 || radius > WIDTH || radius > HEIGHT)
@@ -1129,19 +1154,16 @@ class UserInput
 
     bool validateColor(const string& color) const
     {
-        if (!isLetters(color) || board.colors.find(color) == board.colors.end())
-        {
-            cout << "This color is not available!" << endl;
-            return false;
-        }
-        return true;
+        return board.colors.find(color) != board.colors.end();      
     }
     
     void processShape(istringstream& my_stream, const string& shape) 
     {
+        bool added_successfully = false;
         string color;
         if (!getColorIfAny(my_stream, color))
         {
+            cout << "This color is not available!" << endl;
             return;
         }  
         if (shape == "circle") 
@@ -1170,6 +1192,7 @@ class UserInput
         }
         else {
             cout << "This shape is not available right now!" << endl;
+            return;
         }
     }
 
@@ -1191,20 +1214,20 @@ class UserInput
         string shape;
         getShape(shape, my_stream);
         processShape(my_stream, shape);
-        cout << "The figure was added, don't worry!:)" << endl;
     }
 
     void remove(istringstream& my_stream)
     {
+        bool removed_successfully = false;
         string id;
         checkReturnValue(my_stream, id);
-        action.remove(id);
+        action.remove(id, removed_successfully);
         if (!checkForParametersEnd(my_stream))
         {
             cout << "This command already has enough parameters!" << endl;
             return;
-        }
-        cout << "The figure was removed successully!" << endl;
+        }  
+        if(removed_successfully){ cout << "The figure was removed successully!" << endl; }
     }
 
     void move(istringstream& my_stream)
@@ -1261,14 +1284,7 @@ class UserInput
             cout << "Incorrect input!" << endl;
             return;
         }
-        if (!checkForParametersEnd(my_stream))
-        {
-            handleCoordinates(my_stream, value);
-        }   
-        else
-        {
-            action.selectByID(value);
-        }
+        !checkForParametersEnd(my_stream)? handleCoordinates(my_stream, value): action.selectByID(value);
     }
 
     void loadOrSave(const string& command, istringstream& my_stream) 
@@ -1285,14 +1301,7 @@ class UserInput
             cout << "This command already has enough parameters!" << endl;
             return;
         }
-        if (command == "load") 
-        {
-            action.load(file_path);
-        }
-        else 
-        {
-            action.save(file_path);
-        }
+        command == "load"? action.load(file_path): action.save(file_path);
     }
 
     void processFiguresWithOneParamForEdit(istringstream& my_stream, vector<int>& parameters)
@@ -1318,9 +1327,17 @@ class UserInput
         parameters.push_back(height);
     }
 
+    void displayEditInstruction()const
+    {
+        cout << "You may change a radius of a circle, a side length of a square, width and height of a rectangle or\n" <<
+            "a height of a perfect triangle. You are not permitted to  change coordinates of a simple triangle or a line.\n" <<
+            "If you wish to change them, delete previous ones and create new ones!" << endl;;
+    }
 
     void edit(istringstream& my_stream)
     {
+        displayEditInstruction();
+        bool removed = false;
         if (!checkForParameters(my_stream))
         {
             return;
@@ -1337,9 +1354,8 @@ class UserInput
         }
         else
         {
-            action.remove(action.selected_figure->getID());
-             type == "triangle" ? processTriangle(my_stream, action.selected_figure->getColor()): processLine(my_stream, action.selected_figure->getColor());           
-        }       
+            cout << "You are not allowed to modify this fogure!" << endl;
+        }
         if (!checkForParametersEnd(my_stream))
         {
             cout << "This command already has enough parameters!" << endl;
@@ -1433,6 +1449,10 @@ class UserInput
         else if (command == "edit")
         {
             edit(my_stream);
+        }
+        else if (command == "colors")
+        {
+            action.seeColors();
         }
         else
         {
