@@ -22,16 +22,17 @@ using namespace std;
 struct Board
 {
     vector<vector<char>> grid;
-    unordered_map<string, int> colors = { {"blue", 1}, {"green", 2}, {"red", 4}, {"purple", 5}, {"yellow", 14}, {"pink", 13},
-        {"grey", 8}, {"white", 15}, {"cyan", 3}, {"none", 7} };
+    unordered_map<string, int> colors = { {"blue", 1}, {"green", 2}, {"red", 4}, {"purple", 5}, {"yellow", 6},
+        {"grey", 8}, {"white", 15},{"light-blue", 9}, { "cyan", 3 }, {"none", 7}, {"pink", 13} };
+
+    unordered_set<char> possible_board_symbols; 
 
    int getColor(const string& color)const
    {
-
        return colors.find(color)->second;
    }
 
-    Board() : grid(HEIGHT, vector<char>(WIDTH, ' ')){}
+    Board() : grid(HEIGHT, vector<char>(WIDTH, ' ')){ generatePossibleCharsOfColorCodes(); }
 
     void print() const
     {
@@ -41,11 +42,7 @@ struct Board
             {
                if (c != ' ')
                {
-                   int color_code = static_cast<int>(c);
-                   c = '*';
-                   color_symbol(color_code);
-                   cout << c;
-                   color_symbol(DEFAULT_COLOR_CODE);
+                   handleColor(c);
                }
                else
                {
@@ -64,6 +61,17 @@ struct Board
         }
     } 
 
+    void putStar(const int x, const int y, const int color_code) {
+        
+        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) 
+        {
+           grid[y][x] = static_cast<char>(color_code);
+        }
+    }
+
+
+private:
+
     void color_symbol(int code)const
     {
         HANDLE console_color = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -71,11 +79,20 @@ struct Board
 
     }
 
-    void putStar(const int x, const int y, const int color_code) {
-        
-        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) 
+    void handleColor(char c)const
+    {
+        int color_code = static_cast<int>(c);
+        c = '*';
+        color_symbol(color_code);
+        cout << c;
+        color_symbol(DEFAULT_COLOR_CODE);
+    }
+
+    void generatePossibleCharsOfColorCodes()
+    {
+        for (const auto& sth : colors)
         {
-           grid[y][x] = static_cast<char>(color_code);
+            possible_board_symbols.insert(static_cast<char>(sth.second));
         }
     }
 };
@@ -128,7 +145,6 @@ protected:
             id += to_string(coordinates[i].first);
             id += to_string(coordinates[i].second);
         }
-
         id += Type::types.at(type);
         return id; 
     }
@@ -168,6 +184,7 @@ public:
     {
         return type;
     }
+
     virtual void regenerateID() = 0;
     
     virtual bool contains(const pair<int,int>& point) const = 0;
@@ -188,6 +205,7 @@ public:
     {
         return color;
     }
+
     virtual void printInfo() const = 0;
     
     virtual void draw() const = 0; 
@@ -273,7 +291,7 @@ class Triangle : public Figure
 
     void printInfo() const override
     {
-        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << "), (" << coordinates[2].first << "," << coordinates[2].second << ")" << endl;
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << "), (" << coordinates[2].first << "," << coordinates[2].second << "), color: " << color << endl;
     }
     
     void move(const pair<int, int> move_point) override
@@ -345,7 +363,7 @@ class PerfectTriangle : public Figure
 
     void printInfo() const override
     {
-        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << ")," << ", height - " << height << endl;
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << ")," << ", height - " << height << ", color: " << color << endl;
     }
 
     bool contains(const pair<int, int>& point) const override 
@@ -425,6 +443,22 @@ private:
     {
         id = findID() + to_string(width) + to_string(height);
     }
+
+    bool checkIfInside(const int x, const int y, const pair<int, int>& point)const
+    {
+        return (x >= coordinates[0].first && x <= coordinates[0].first + width &&
+            y >= coordinates[0].second && y <= coordinates[0].second + height);
+    }
+
+    bool checkIfOnEdges(const int x, const int y, const pair<int, int>& point)const
+    {
+        bool onLeftEdge = (x == coordinates[0].first && y >= coordinates[0].second && y <= coordinates[0].second + height);
+        bool onRightEdge = (x == coordinates[0].first + width && y >= coordinates[0].second && y <= coordinates[0].second + height);
+        bool onTopEdge = (y == coordinates[0].second && x >= coordinates[0].first && x <= coordinates[0].first + width);
+        bool onBottomEdge = (y == coordinates[0].second + height && x >= coordinates[0].first && x <= coordinates[0].first + width);
+        return onLeftEdge || onRightEdge || onTopEdge || onBottomEdge;
+    }
+
 protected:
 
      void draw() const override
@@ -434,7 +468,7 @@ protected:
 
      void printInfo() const override
      {
-        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), width - " << width << ", height - " << height << endl;
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), width - " << width << ", height - " << height << ", color: " << color <<  endl;
      }
 
      bool contains(const pair<int, int>& point)const override
@@ -443,16 +477,11 @@ protected:
          int y = point.second;
          if (color_code != 0) 
          {
-             return (x >= coordinates[0].first && x <= coordinates[0].first + width &&
-                 y >= coordinates[0].second && y <= coordinates[0].second + height);
+             return checkIfInside(x, y, point);
          }
          else 
-         {
-             bool onLeftEdge = (x == coordinates[0].first && y >= coordinates[0].second && y <= coordinates[0].second + height);
-             bool onRightEdge = (x == coordinates[0].first + width && y >= coordinates[0].second && y <= coordinates[0].second + height);
-             bool onTopEdge = (y == coordinates[0].second && x >= coordinates[0].first && x <= coordinates[0].first + width);
-             bool onBottomEdge = (y == coordinates[0].second + height && x >= coordinates[0].first && x <= coordinates[0].first + width);
-             return onLeftEdge || onRightEdge || onTopEdge || onBottomEdge;
+         {            
+             return checkIfOnEdges(x, y, point);
          }       
      }
 
@@ -504,6 +533,7 @@ class Square : public Rectangle
     }
 
 public:
+
     Square(const pair<int, int>& top_left_point, int side_length) : Rectangle(top_left_point, side_length, side_length)
     {
         setType("square");
@@ -578,7 +608,7 @@ class Circle : public Figure
 
     void printInfo() const override
     {
-        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), radius - " << radius << endl;
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), radius - " << radius << ", color: " << color << endl;
     }
 
     bool contains(const pair<int, int>& point)const override
@@ -640,7 +670,7 @@ class Line : public Figure
 
     void printInfo() const override
     {
-        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << ")" << endl;
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << ")" << ", color: " << color << endl;
     }
 
     bool contains(const pair<int, int>& point)const override
@@ -695,6 +725,7 @@ class Commands
         }
         return true;
     }
+
     
 public:
     shared_ptr<Figure> selected_figure;
@@ -783,16 +814,16 @@ public:
     void save(const string& file_path)
     {
         ofstream file(file_path);
-
         if (!file.is_open()) {
             cout << "The file can't be opened. Believe me, I tried((((!" << endl;
             return;
         }
-
         for (const auto& row : board.grid)
         {
             for (char c : row) {
-                file << c;
+               
+               file << c;
+                
             }
             file << '\n';  
         }
@@ -820,12 +851,13 @@ public:
             }
             for (int i = 0; i < WIDTH; i++)
             {
-                if (line[i] != ' ' && line[i] != '*')
-                {
+               if (board.possible_board_symbols.find(line[i]) == board.possible_board_symbols.end())
+               {
                     cout << "Incorrect symbols on the board!" << endl;
                     return;
-                }
-                board.grid[line_count][i] = line[i];
+               }            
+
+                board.grid[line_count][i] = line[i];              
             }    
             line_count++;
         }
@@ -1263,6 +1295,30 @@ class UserInput
         }
     }
 
+    void processFiguresWithOneParamForEdit(istringstream& my_stream, vector<int>& parameters)
+    {
+        int value;
+        if (!checkOneParam(my_stream, value))
+        {
+            cout << "Incorrect parameters for edition!" << endl;
+            return;
+        }
+        parameters.push_back(value);
+    }
+
+    void processFiguresWithTwoParamsForEdit(istringstream& my_stream, vector<int>& parameters)
+    {
+        int width, height;
+        if (!checkTwoParam(my_stream, width, height))
+        {
+            cout << "Incorrect parameters for edition!" << endl;
+            return;
+        }
+        parameters.push_back(width);
+        parameters.push_back(height);
+    }
+
+
     void edit(istringstream& my_stream)
     {
         if (!checkForParameters(my_stream))
@@ -1273,35 +1329,17 @@ class UserInput
         string type = action.selected_figure->getType();
         if (type == "square" || type == "circle" || type == "perfect triangle")
         {
-            int value;
-            if (!checkOneParam(my_stream, value))
-            {
-                cout << "Incorrect parameters for edition!" << endl;
-                return;
-            }
-            parameters.push_back(value);
+            processFiguresWithOneParamForEdit(my_stream, parameters);
         }
         else if (type == "rectangle")
         {
-            int width, height;
-            if (!checkTwoParam(my_stream, width, height))
-            {
-                cout << "Incorrect parameters for edition!" << endl;
-                return;
-            }
-            parameters.push_back(width);
-            parameters.push_back(height);
+            processFiguresWithTwoParamsForEdit(my_stream, parameters);
         }
-        else if (type == "triangle")
+        else
         {
             action.remove(action.selected_figure->getID());
-            processTriangle(my_stream, action.selected_figure->getColor());
-        }
-        else if (type == "line")
-        {
-            action.remove(action.selected_figure->getID());
-            processLine(my_stream, action.selected_figure->getColor());
-        }
+             type == "triangle" ? processTriangle(my_stream, action.selected_figure->getColor()): processLine(my_stream, action.selected_figure->getColor());           
+        }       
         if (!checkForParametersEnd(my_stream))
         {
             cout << "This command already has enough parameters!" << endl;
@@ -1409,7 +1447,7 @@ class UserInput
 
     UserInput()
     {
-        cout << "Welcome to the Best blackboard game! Start playing, do not waste any second of your precious  endless life:))))" << endl;
+        cout << "Welcome to the Best blackboard game! Start playing, do not waste any second of your precious endless life:))))" << endl;
         while (!exit_flag)
         {
             takeUserInput();
