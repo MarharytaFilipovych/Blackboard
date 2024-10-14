@@ -69,7 +69,6 @@ struct Board
         }
     }
 
-
 private:
 
     void color_symbol(int code)const
@@ -128,6 +127,7 @@ static Board board;
 class Figure
 {
 protected:
+    bool frame;
     string type;
     string id;
     vector<pair<int, int>> coordinates;
@@ -173,7 +173,7 @@ protected:
 
 public:
 
-    Figure(const vector<pair<int,int>>& figure_coordinates, const string& figure_type) : coordinates(figure_coordinates), type(figure_type){}
+    Figure(const vector<pair<int,int>>& figure_coordinates, const string& figure_type, bool structure) : coordinates(figure_coordinates), type(figure_type), frame(structure){}
     
     const string getID() const
     {
@@ -200,12 +200,15 @@ public:
         color = new_color;
         color_code = board.getColor(color);
     }
-
+    void changeStructure(const string& structure)
+    {
+        structure == "frame"? frame = true : frame = false;
+    }
     const string getColor()const
     {
         return color;
     }
-
+  
     virtual void printInfo() const = 0;
     
     virtual void draw() const = 0; 
@@ -286,7 +289,7 @@ class Triangle : public Figure
 
     void draw() const override
     {        
-        color != "none" ? drawFilled() : drawFrame();
+        frame ? drawFrame() : drawFilled();
     }
 
     void printInfo() const override
@@ -307,8 +310,8 @@ class Triangle : public Figure
 
 public:
 
-    Triangle(const pair<int, int>& p1, const pair<int, int>& p2, const pair<int, int>& p3)
-        : Figure(vector<pair<int, int>>{p1, p2, p3}, "triangle") 
+    Triangle(const pair<int, int>& p1, const pair<int, int>& p2, const pair<int, int>& p3, bool structure)
+        : Figure(vector<pair<int, int>>{p1, p2, p3}, "triangle", structure) 
     {
         id = findID();
         calculateCenter();
@@ -345,7 +348,7 @@ class PerfectTriangle : public Figure
             int posY = y + i;
             board.putStar(leftMost, posY, color_code);
             board.putStar(rightMost, posY, color_code);
-            if (color != "none")
+            if (!frame)
             {
                 for (int j = leftMost; j <= rightMost; j++)
                 {
@@ -368,13 +371,13 @@ class PerfectTriangle : public Figure
 
     bool contains(const pair<int, int>& point) const override 
     {
-        Triangle triangle(coordinates[0], coordinates[1], coordinates[2]);
+        Triangle triangle(coordinates[0], coordinates[1], coordinates[2], frame);
         return triangle.contains(point);
     }
 
     void move(const pair<int, int> move_point) override
     {
-        Triangle triangle(coordinates[0], coordinates[1], coordinates[2]);
+        Triangle triangle(coordinates[0], coordinates[1], coordinates[2], frame);
 
         triangle.move(move_point);
     }
@@ -386,7 +389,7 @@ class PerfectTriangle : public Figure
 
 public:
 
-    PerfectTriangle(const pair<int, int>& vertex, int h) : Figure(vector<pair<int, int>>{vertex}, "perfect triangle"), height(h)
+    PerfectTriangle(const pair<int, int>& vertex, int h,bool structure) : Figure(vector<pair<int, int>>{vertex}, "perfect triangle", structure), height(h)
     {
         id = findID() + to_string(height);
         resolveCoordinates();
@@ -463,7 +466,7 @@ protected:
 
      void draw() const override
      {
-         color != "none" ? drawFilled(): drawFrame();
+         frame ? drawFrame() : drawFilled();
      }
 
      void printInfo() const override
@@ -493,7 +496,7 @@ protected:
 
 public:
 
-    Rectangle(const pair<int,int>& top_left_point, int w, int h) : Figure(vector<pair<int, int>>{top_left_point}, "rectangle"), width(w), height(h)
+    Rectangle(const pair<int,int>& top_left_point, int w, int h,bool structure) : Figure(vector<pair<int, int>>{top_left_point}, "rectangle", structure), width(w), height(h)
     {
         id = findID() + to_string(width) + to_string(height);
     }
@@ -534,7 +537,7 @@ class Square : public Rectangle
 
 public:
 
-    Square(const pair<int, int>& top_left_point, int side_length) : Rectangle(top_left_point, side_length, side_length)
+    Square(const pair<int, int>& top_left_point, int side_length, bool structure) : Rectangle(top_left_point, side_length, side_length, structure)
     {
         setType("square");
         id = findID() + to_string(side_length);
@@ -579,7 +582,7 @@ class Circle : public Figure
 
     void draw(int xc, int yc, int x, int y) const
     {      
-        color != "none" ? fillCirclePoints(xc, yc, x, y): plotCirclePoints(xc, yc, x, y);
+        !frame ? fillCirclePoints(xc, yc, x, y): plotCirclePoints(xc, yc, x, y);
     }
 
     void draw() const override
@@ -638,7 +641,7 @@ class Circle : public Figure
 
 public:
 
-    Circle(const pair<int, int>& center, int r) : Figure(vector<pair<int, int>>{center}, "circle"), radius(r) 
+    Circle(const pair<int, int>& center, int r, bool structure) : Figure(vector<pair<int, int>>{center}, "circle", structure), radius(r)
     {
         id = findID() + to_string(radius);
     }
@@ -695,7 +698,7 @@ class Line : public Figure
 
 public:
 
-    Line(const pair<int, int>& p1, const pair<int, int>& p2) : Figure(vector<pair<int, int>> {p1, p2}, "line")
+    Line(const pair<int, int>& p1, const pair<int, int>& p2, bool structure) : Figure(vector<pair<int, int>> {p1, p2}, "line", structure)
     {
         id = findID();
     }
@@ -940,9 +943,10 @@ public:
         }
     }
 
-    void paint(const string&  color)
+    void paint(const string&  color, const string& stucture)
     {
         selected_figure->setColor(color);
+        selected_figure->changeStructure(stucture);
         drawTheBoard();
         cout << "The selected figure became " << color << "!" << endl;
     }
@@ -1074,7 +1078,7 @@ class UserInput
         return x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT;
     }
 
-    void processCircle(istringstream& my_stream, const string& color)
+    void processCircle(istringstream& my_stream, const string& color, bool frame)
     {
         int x, y, radius;
         if (!checkFigureWithThreeParam(my_stream, x, y, radius) || !isWithinBounds(x, y) || radius < 0 || radius > WIDTH || radius > HEIGHT)
@@ -1082,20 +1086,20 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Circle>(make_pair(x, y), radius), color);
+        action.addFigure(make_shared<Circle>(make_pair(x, y), radius, frame), color);
     }
 
-    void processTriangle(istringstream& my_stream, const string& color)
+    void processTriangle(istringstream& my_stream, const string& color, bool frame)
     {
         int x1, y1, x2, y2, x3, y3;
         if (!checkTriangle(my_stream, x1, y1, x2, y2, x3, y3) || !isWithinBounds(x1, y1) || !isWithinBounds(x2, y2) || !isWithinBounds(x3, y3)) {
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Triangle>(make_pair(x1, y1), make_pair(x2, y2), make_pair(x3, y3)), color);
+        action.addFigure(make_shared<Triangle>(make_pair(x1, y1), make_pair(x2, y2), make_pair(x3, y3), frame), color);
     }
 
-    void processRectangle(istringstream& my_stream, const string& color)
+    void processRectangle(istringstream& my_stream, const string& color, bool frame)
     {
         int x, y, width, height;
         if (!checkFigureWithFourParam(my_stream, x, y, width, height) || !isWithinBounds(x, y) || !isWithinBounds(width, height))
@@ -1103,10 +1107,10 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Rectangle>(make_pair(x, y), width, height), color);
+        action.addFigure(make_shared<Rectangle>(make_pair(x, y), width, height, frame), color);
     }
 
-    void processSquare(istringstream& my_stream, const string& color)
+    void processSquare(istringstream& my_stream, const string& color, bool frame)
     {
         int x, y, side_length;
         if (!checkFigureWithThreeParam(my_stream, x, y, side_length) || !isWithinBounds(x, y) || side_length < 0 || side_length > WIDTH || side_length > HEIGHT)
@@ -1114,10 +1118,10 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Square>(make_pair(x, y), side_length), color);
+        action.addFigure(make_shared<Square>(make_pair(x, y), side_length, frame), color);
     }
 
-    void processPerfectTriangle(istringstream& my_stream, const string& color)
+    void processPerfectTriangle(istringstream& my_stream, const string& color, bool frame)
     {
         int x, y, height;
         if (!checkFigureWithThreeParam(my_stream, x, y, height) || !isWithinBounds(x, y) || height < 0 || height > HEIGHT)
@@ -1125,10 +1129,10 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<PerfectTriangle>(make_pair(x, y), height), color);
+        action.addFigure(make_shared<PerfectTriangle>(make_pair(x, y), height, frame), color);
     }
 
-    void processLine(istringstream& my_stream, const string& color)
+    void processLine(istringstream& my_stream, const string& color, bool frame)
     {
         int x1, y1, x2, y2;
         if (!checkFigureWithFourParam(my_stream, x1, y1, x2, y2) || !isWithinBounds(x1, y1) || !isWithinBounds(x2, y2)) {
@@ -1136,23 +1140,21 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Line>(make_pair(x1, y1), make_pair(x2, y2)), color);
+        action.addFigure(make_shared<Line>(make_pair(x1, y1), make_pair(x2, y2), frame), color);
     }
 
-    bool getColorIfAny(istringstream& my_stream, string& color) const
+    bool getColorIAndStructure(istringstream& my_stream, string& color, bool& frame) const
     {
-        string fill_word;
-        my_stream >> fill_word;
-        if (fill_word == "fill")
+        string fword;
+        my_stream >> fword;
+        if (fword != "fill" && fword != "frame")
         {
-            my_stream >> color; 
-            return validateColor(color); 
+            cout << "Specify structure of the figure: FILL or FRAME!" << endl;
+            return false;
         }
-        for (int i = fill_word.length() - 1; i >= 0; --i) {
-            my_stream.putback(fill_word[i]);
-        }
-        color = "none"; 
-        return true; 
+        my_stream >> color;
+        fword == "fill" ? frame = false : frame = true;
+        return validateColor(color);
     }
 
     bool validateColor(const string& color) const
@@ -1162,36 +1164,36 @@ class UserInput
     
     void processShape(istringstream& my_stream, const string& shape) 
     {
-        bool added_successfully = false;
+        bool frame = false;
         string color;
-        if (!getColorIfAny(my_stream, color))
+        if (!getColorIAndStructure(my_stream, color, frame))
         {
             cout << "This color is not available!" << endl;
             return;
         }  
         if (shape == "circle") 
         {
-            processCircle(my_stream, color);
+            processCircle(my_stream, color, frame);
         }
         else if (shape == "triangle") 
         {
-            processTriangle(my_stream, color);
+            processTriangle(my_stream, color, frame);
         }
         else if (shape == "rectangle") 
         {
-            processRectangle(my_stream, color);
+            processRectangle(my_stream, color, frame);
         }
         else if (shape == "perfect triangle") 
         {
-            processPerfectTriangle(my_stream, color);
+            processPerfectTriangle(my_stream, color, frame);
         }
         else if (shape == "line")
         {
-            processLine(my_stream, color);
+            processLine(my_stream, color, frame);
         }
         else if (shape == "square")
         {
-            processSquare(my_stream, color);
+            processSquare(my_stream, color, frame);
         }
         else {
             cout << "This shape is not available right now!" << endl;
@@ -1252,7 +1254,14 @@ class UserInput
         {
             return;
         }
-        action.paint(color);
+        string structure;
+        checkReturnValue(my_stream, structure); 
+        if (structure != "fill" && structure != "frame")
+        {
+            cout << "Specify structure of the figure: FILL or FRAME!" << endl;
+            return;
+        }
+        action.paint(color, structure);
         if (!checkForParametersEnd(my_stream))
         {
             cout << "This command already has enough parameters!" << endl;
