@@ -754,7 +754,7 @@ public:
 
     void help()const
     {
-        cout << "There are 15 commands developed explicitly for you:\n"
+        cout << "There are 16 commands developed explicitly for you:\n"
             << "* draw: view your blackboard with the figures added.\n"
             << "* add FIGURE PARAMETERS || add FIGURE_TYPE fill COLOR PARAMETERS: add a new figure to the blackboard (check the 'shapes' command to use this command correctly). You have a noption of specifying a coolor of the figure. If you don't, the color will be defaulted to 'none'.\n"
             << "* shapes: this is list of all available shapes and their parameters, specially designed to assist you in using the 'add' command.\n"
@@ -769,7 +769,7 @@ public:
             << "* move X Y: move previously selected figure to the specified point. Note: all points are moved regarding to their centers.\n"
             << "* paint COLOR: paint previously selected figure with a specified color.\n"
             << "* select ID | select X Y: select a particular figure from the board. You can do that with a help of the figure's id. Additionally, you can specify a point, that belongs to that figure. Note: in case of specifying a point, the forground figure will be selected!\n"
-            << "* edit: change the previously selected figure.\n"
+            << "* edit VALUE (VALUE2 (if rectangle)): change the previously selected figure.\n"
             << "* colors: look at the list of available colors." << endl;
         cout << "Edit instruction: You may change a radius of a circle, a side length of a square, width and height of a rectangle or\n" <<
             "a height of a perfect triangle. You are not permitted to  change coordinates of a simple triangle or a line.\n" <<
