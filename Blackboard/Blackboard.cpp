@@ -84,7 +84,6 @@ private:
         c = '*';
         color_symbol(color_code);
         cout << c;
-        color_symbol(DEFAULT_COLOR_CODE);
     }
 
     void generatePossibleCharsOfColorCodes()
