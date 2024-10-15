@@ -22,33 +22,33 @@ using namespace std;
 struct Board
 {
     vector<vector<char>> grid;
-    unordered_map<string, int> colors = {{"blue", 1},{"green", 2},{"cyan", 3},{"red", 4},{"purple", 5},{"yellow", 6},{"none", 7},
-     {"grey", 8},{"bright-blue", 9},{"bright-green", 10},{"bright-cyan", 11},{"bright-red", 12},{"pink", 13},{"bright-yellow", 14}, {"white", 15}};
+    unordered_map<string, int> colors = { {"blue", 1},{"green", 2},{"cyan", 3},{"red", 4},{"purple", 5},{"yellow", 6},{"none", 7},
+     {"grey", 8},{"bright-blue", 9},{"bright-green", 10},{"bright-cyan", 11},{"bright-red", 12},{"pink", 13},{"bright-yellow", 14}, {"white", 15} };
 
-    unordered_set<char> possible_board_symbols; 
+    unordered_set<char> possible_board_symbols;
 
-   int getColor(const string& color)const
-   {
-       return colors.find(color)->second;
-   }
+    int getColor(const string& color)const
+    {
+        return colors.find(color)->second;
+    }
 
-    Board() : grid(HEIGHT, vector<char>(WIDTH, ' ')){ generatePossibleCharsOfColorCodes(); }
+    Board() : grid(HEIGHT, vector<char>(WIDTH, ' ')) { generatePossibleCharsOfColorCodes(); }
 
     void print() const
     {
         for (auto& row : grid)
         {
-           for (char c : row)
+            for (char c : row)
             {
-               if (c != ' ')
-               {
-                   handleColor(c);
-               }
-               else
-               {
-                   cout << c;
-               }             
-           }
+                if (c != ' ')
+                {
+                    handleColor(c);
+                }
+                else
+                {
+                    cout << c;
+                }
+            }
             cout << endl;
         }
     }
@@ -57,18 +57,17 @@ struct Board
     {
         for (auto& row : grid)
         {
-            fill(row.begin(), row.end(), ' '); 
-        }
-    } 
-
-    void putStar(const int x, const int y, const int color_code) {
-        
-        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) 
-        {
-           grid[y][x] = static_cast<char>(color_code);
+            fill(row.begin(), row.end(), ' ');
         }
     }
 
+    void putStar(const int x, const int y, const int color_code) {
+
+        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT)
+        {
+            grid[y][x] = static_cast<char>(color_code);
+        }
+    }
 
 private:
 
@@ -97,14 +96,14 @@ private:
     }
 };
 
- class Type
+class Type
 {
-    static const string convertTypeToNumber(const string& type) 
+    static const string convertTypeToNumber(const string& type)
     {
         int number = 0;
         for (char letter : type)
         {
-            number += static_cast<int>(letter); 
+            number += static_cast<int>(letter);
         }
         return to_string(number);
     }
@@ -113,21 +112,22 @@ public:
     static const unordered_map<string, string> types;
 };
 
- const unordered_map<string, string> Type::types = 
- {
-     {"circle", Type::convertTypeToNumber("circle")},
-     {"triangle", Type::convertTypeToNumber("triangle")},
-     {"rectangle", Type::convertTypeToNumber("rectangle")},
-     {"perfect triangle", Type::convertTypeToNumber("perfect triangle")},
-     {"line", Type::Type::convertTypeToNumber("line")},
-     {"square", Type::Type::convertTypeToNumber("square")} 
- };
- 
+const unordered_map<string, string> Type::types =
+{
+    {"circle", Type::convertTypeToNumber("circle")},
+    {"triangle", Type::convertTypeToNumber("triangle")},
+    {"rectangle", Type::convertTypeToNumber("rectangle")},
+    {"perfect triangle", Type::convertTypeToNumber("perfect triangle")},
+    {"line", Type::Type::convertTypeToNumber("line")},
+    {"square", Type::Type::convertTypeToNumber("square")}
+};
+
 static Board board;
 
 class Figure
 {
 protected:
+    bool frame;
     string type;
     string id;
     vector<pair<int, int>> coordinates;
@@ -140,16 +140,16 @@ protected:
     }
 
     const string findID() {
-        string id = ""; 
+        string id = "";
         for (int i = coordinates.size() - 1; i >= 0; i--) {
             id += to_string(coordinates[i].first);
             id += to_string(coordinates[i].second);
         }
         id += Type::types.at(type);
-        return id; 
+        return id;
     }
-  
-    void drawLine( const pair<int, int>& xy1, const pair<int, int>& xy2) const
+
+    void drawLine(const pair<int, int>& xy1, const pair<int, int>& xy2) const
     {
         int x1 = xy1.first;
         int y1 = xy1.second;
@@ -162,10 +162,10 @@ protected:
 
         while (true) {
             if (x1 == x2 && y1 == y2) break;
-            board.putStar(x1, y1, color_code);  
+            board.putStar(x1, y1, color_code);
             e2 = 2 * err;
-            if (e2 >= dy) { err += dy; x1 += sx; } 
-            if (e2 <= dx) { err += dx; y1 += sy; } 
+            if (e2 >= dy) { err += dy; x1 += sx; }
+            if (e2 <= dx) { err += dx; y1 += sy; }
         }
     }
 
@@ -173,8 +173,8 @@ protected:
 
 public:
 
-    Figure(const vector<pair<int,int>>& figure_coordinates, const string& figure_type) : coordinates(figure_coordinates), type(figure_type){}
-    
+    Figure(const vector<pair<int, int>>& figure_coordinates, const string& figure_type, bool structure) : coordinates(figure_coordinates), type(figure_type), frame(structure) {}
+
     const string getID() const
     {
         return id;
@@ -186,11 +186,11 @@ public:
     }
 
     virtual void regenerateID() = 0;
-    
-    virtual bool contains(const pair<int,int>& point) const = 0;
+
+    virtual bool contains(const pair<int, int>& point) const = 0;
 
 
-    void setType(const string& new_type) 
+    void setType(const string& new_type)
     {
         type = new_type;
     }
@@ -200,18 +200,21 @@ public:
         color = new_color;
         color_code = board.getColor(color);
     }
-
+    void changeStructure(const string& structure)
+    {
+        structure == "frame" ? frame = true : frame = false;
+    }
     const string getColor()const
     {
         return color;
     }
 
     virtual void printInfo() const = 0;
-    
-    virtual void draw() const = 0; 
+
+    virtual void draw() const = 0;
 
     virtual void move(const pair<int, int> move_point) = 0;
-    
+
     bool operator==(const Figure& other) const
     {
         return id == other.id;
@@ -237,8 +240,8 @@ class Triangle : public Figure
 
     void calculateCenter()
     {
-        int x = (coordinates[0].first + coordinates[1].first + coordinates[2].first)/3;
-        int y = (coordinates[0].second + coordinates[1].second + coordinates[2].second)/3;
+        int x = (coordinates[0].first + coordinates[1].first + coordinates[2].first) / 3;
+        int y = (coordinates[0].second + coordinates[1].second + coordinates[2].second) / 3;
         center = make_pair(x, y);
     }
 
@@ -274,7 +277,7 @@ class Triangle : public Figure
                     board.putStar(i, j, color_code);
                 }
             }
-        }    
+        }
     }
 
     void drawFrame()const
@@ -285,15 +288,15 @@ class Triangle : public Figure
     }
 
     void draw() const override
-    {        
-        color != "none" ? drawFilled() : drawFrame();
+    {
+        frame ? drawFrame() : drawFilled();
     }
 
     void printInfo() const override
     {
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), (" << coordinates[1].first << "," << coordinates[1].second << "), (" << coordinates[2].first << "," << coordinates[2].second << "), color: " << color << endl;
     }
-    
+
     void move(const pair<int, int> move_point) override
     {
         center.first = move_point.first;
@@ -307,8 +310,8 @@ class Triangle : public Figure
 
 public:
 
-    Triangle(const pair<int, int>& p1, const pair<int, int>& p2, const pair<int, int>& p3)
-        : Figure(vector<pair<int, int>>{p1, p2, p3}, "triangle") 
+    Triangle(const pair<int, int>& p1, const pair<int, int>& p2, const pair<int, int>& p3, bool structure)
+        : Figure(vector<pair<int, int>>{p1, p2, p3}, "triangle", structure)
     {
         id = findID();
         calculateCenter();
@@ -316,7 +319,7 @@ public:
         xy2 = coordinates[1];
         xy3 = coordinates[2];
     }
-    
+
 };
 class PerfectTriangle : public Figure
 {
@@ -338,14 +341,14 @@ class PerfectTriangle : public Figure
         int x = coordinates[0].first;
         int y = coordinates[0].second;
 
-        for (int i = 0; i < height; i++) 
+        for (int i = 0; i < height; i++)
         {
             int leftMost = x - i;
             int rightMost = x + i;
             int posY = y + i;
             board.putStar(leftMost, posY, color_code);
             board.putStar(rightMost, posY, color_code);
-            if (color != "none")
+            if (!frame)
             {
                 for (int j = leftMost; j <= rightMost; j++)
                 {
@@ -353,7 +356,7 @@ class PerfectTriangle : public Figure
                 }
             }
         }
-        for (int j = 0; j < 2 * height - 1; j++) 
+        for (int j = 0; j < 2 * height - 1; j++)
         {
             int baseX = x - height + 1 + j;
             int baseY = y + height - 1;
@@ -366,15 +369,15 @@ class PerfectTriangle : public Figure
         cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << ")," << ", height - " << height << ", color: " << color << endl;
     }
 
-    bool contains(const pair<int, int>& point) const override 
+    bool contains(const pair<int, int>& point) const override
     {
-        Triangle triangle(coordinates[0], coordinates[1], coordinates[2]);
+        Triangle triangle(coordinates[0], coordinates[1], coordinates[2], frame);
         return triangle.contains(point);
     }
 
     void move(const pair<int, int> move_point) override
     {
-        Triangle triangle(coordinates[0], coordinates[1], coordinates[2]);
+        Triangle triangle(coordinates[0], coordinates[1], coordinates[2], frame);
 
         triangle.move(move_point);
     }
@@ -386,7 +389,7 @@ class PerfectTriangle : public Figure
 
 public:
 
-    PerfectTriangle(const pair<int, int>& vertex, int h) : Figure(vector<pair<int, int>>{vertex}, "perfect triangle"), height(h)
+    PerfectTriangle(const pair<int, int>& vertex, int h, bool structure) : Figure(vector<pair<int, int>>{vertex}, "perfect triangle", structure), height(h)
     {
         id = findID() + to_string(height);
         resolveCoordinates();
@@ -429,7 +432,7 @@ private:
         drawLine(xy3, xy1);
     }
 
-    void drawFilled()const 
+    void drawFilled()const
     {
         for (int i = coordinates[0].first; i < width + coordinates[0].first; i++)
         {
@@ -461,39 +464,39 @@ private:
 
 protected:
 
-     void draw() const override
-     {
-         color != "none" ? drawFilled(): drawFrame();
-     }
+    void draw() const override
+    {
+        frame ? drawFrame() : drawFilled();
+    }
 
-     void printInfo() const override
-     {
-        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), width - " << width << ", height - " << height << ", color: " << color <<  endl;
-     }
+    void printInfo() const override
+    {
+        cout << id << " " << type << ": (" << coordinates[0].first << "," << coordinates[0].second << "), width - " << width << ", height - " << height << ", color: " << color << endl;
+    }
 
-     bool contains(const pair<int, int>& point)const override
-     {
-         int x = point.first;
-         int y = point.second;
-         if (color_code != 0) 
-         {
-             return checkIfInside(x, y, point);
-         }
-         else 
-         {            
-             return checkIfOnEdges(x, y, point);
-         }       
-     }
+    bool contains(const pair<int, int>& point)const override
+    {
+        int x = point.first;
+        int y = point.second;
+        if (color_code != 0)
+        {
+            return checkIfInside(x, y, point);
+        }
+        else
+        {
+            return checkIfOnEdges(x, y, point);
+        }
+    }
 
-     void move(const pair<int, int> move_point) override
-     {
-         center.first = move_point.first;
-         center.second = move_point.second;
-     }
+    void move(const pair<int, int> move_point) override
+    {
+        center.first = move_point.first;
+        center.second = move_point.second;
+    }
 
 public:
 
-    Rectangle(const pair<int,int>& top_left_point, int w, int h) : Figure(vector<pair<int, int>>{top_left_point}, "rectangle"), width(w), height(h)
+    Rectangle(const pair<int, int>& top_left_point, int w, int h, bool structure) : Figure(vector<pair<int, int>>{top_left_point}, "rectangle", structure), width(w), height(h)
     {
         id = findID() + to_string(width) + to_string(height);
     }
@@ -534,7 +537,7 @@ class Square : public Rectangle
 
 public:
 
-    Square(const pair<int, int>& top_left_point, int side_length) : Rectangle(top_left_point, side_length, side_length)
+    Square(const pair<int, int>& top_left_point, int side_length, bool structure) : Rectangle(top_left_point, side_length, side_length, structure)
     {
         setType("square");
         id = findID() + to_string(side_length);
@@ -542,27 +545,27 @@ public:
 
     void edit(const int new_side_length)
     {
-        height, width = new_side_length;      
+        height, width = new_side_length;
     }
 };
 
 class Circle : public Figure
 {
     int radius;
-    
+
     void fillCirclePoints(int xc, int yc, int x, int y) const
     {
-        for (int i = xc - x * 2; i <= xc + x * 2; i++) 
+        for (int i = xc - x * 2; i <= xc + x * 2; i++)
         {
             board.putStar(i, yc + y, color_code);
             board.putStar(i, yc - y, color_code);
         }
 
-       for (int i = xc - y * 2; i <= xc + y * 2; i++) 
-       {
+        for (int i = xc - y * 2; i <= xc + y * 2; i++)
+        {
             board.putStar(i, yc + x, color_code);
             board.putStar(i, yc - x, color_code);
-       }
+        }
     }
 
     void plotCirclePoints(int xc, int yc, int x, int y) const
@@ -578,8 +581,8 @@ class Circle : public Figure
     }
 
     void draw(int xc, int yc, int x, int y) const
-    {      
-        color != "none" ? fillCirclePoints(xc, yc, x, y): plotCirclePoints(xc, yc, x, y);
+    {
+        !frame ? fillCirclePoints(xc, yc, x, y) : plotCirclePoints(xc, yc, x, y);
     }
 
     void draw() const override
@@ -588,19 +591,19 @@ class Circle : public Figure
         int yc = coordinates[0].second;
         int x = 0;
         int y = radius;
-        int d = 1 - radius;  
+        int d = 1 - radius;
         draw(xc, yc, x, y);
         while (y > x)
         {
             x++;
             if (d < 0)
             {
-                d += 2 * x + 1;  
+                d += 2 * x + 1;
             }
             else
             {
                 y--;
-                d += 2 * (x - y) + 1;  
+                d += 2 * (x - y) + 1;
             }
             draw(xc, yc, x, y);
         }
@@ -638,7 +641,7 @@ class Circle : public Figure
 
 public:
 
-    Circle(const pair<int, int>& center, int r) : Figure(vector<pair<int, int>>{center}, "circle"), radius(r) 
+    Circle(const pair<int, int>& center, int r, bool structure) : Figure(vector<pair<int, int>>{center}, "circle", structure), radius(r)
     {
         id = findID() + to_string(radius);
     }
@@ -656,7 +659,7 @@ class Line : public Figure
 
     void calculateCenter()
     {
-        int x = (coordinates[0].first + coordinates[1].first ) / 2;
+        int x = (coordinates[0].first + coordinates[1].first) / 2;
         int y = (coordinates[0].second + coordinates[1].second) / 2;
         center = make_pair(x, y);
     }
@@ -674,7 +677,7 @@ class Line : public Figure
     }
 
     bool contains(const pair<int, int>& point)const override
-    {     
+    {
         bool onSegment = min(coordinates[0].first, coordinates[1].first) <= point.first && max(coordinates[0].first, coordinates[1].first) >= point.first
             && min(coordinates[0].second, coordinates[1].second) <= point.second && max(coordinates[0].second, coordinates[1].second) >= point.second;
 
@@ -695,11 +698,11 @@ class Line : public Figure
 
 public:
 
-    Line(const pair<int, int>& p1, const pair<int, int>& p2) : Figure(vector<pair<int, int>> {p1, p2}, "line")
+    Line(const pair<int, int>& p1, const pair<int, int>& p2, bool structure) : Figure(vector<pair<int, int>> {p1, p2}, "line", structure)
     {
         id = findID();
     }
-    
+
 };
 
 class Commands
@@ -756,7 +759,7 @@ public:
     {
         cout << "There are 16 commands developed explicitly for you:\n"
             << "* draw: view your blackboard with the figures added.\n"
-            << "* add FIGURE PARAMETERS || add FIGURE_TYPE fill COLOR PARAMETERS: add a new figure to the blackboard (check the 'shapes' command to use this command correctly). You have a noption of specifying a coolor of the figure. If you don't, the color will be defaulted to 'none'.\n"
+            << "* add FIGURE fill|frame COLOR PARAMETERS: add a new figure to the blackboard (check the 'shapes' command to use this command correctly). You have a noption of specifying a coolor of the figure. If you don't, the color will be defaulted to 'none'.\n"
             << "* shapes: this is list of all available shapes and their parameters, specially designed to assist you in using the 'add' command.\n"
             << "* clear: clear all content from the board.\n"
             << "* undo: remove the last added figure.\n"
@@ -767,7 +770,7 @@ public:
             << "* exit: finish your work here.\n"
             << "* remove ID: remove the figure by specifying its id.\n"
             << "* move X Y: move previously selected figure to the specified point. Note: all points are moved regarding to their centers.\n"
-            << "* paint COLOR: paint previously selected figure with a specified color.\n"
+            << "* paint COLOR FRAME(FILL): paint previously selected figure with a specified color.\n"
             << "* select ID | select X Y: select a particular figure from the board. You can do that with a help of the figure's id. Additionally, you can specify a point, that belongs to that figure. Note: in case of specifying a point, the forground figure will be selected!\n"
             << "* edit VALUE (VALUE2 (if rectangle)): change the previously selected figure.\n"
             << "* colors: look at the list of available colors." << endl;
@@ -793,7 +796,7 @@ public:
             << "* square: X Y (top left coordinates) SIDE_LENGTH\n";
     }
 
-    void addFigure(const shared_ptr<Figure>& figure, const string& color) 
+    void addFigure(const shared_ptr<Figure>& figure, const string& color)
     {
         if (figures.find(figure->getID()) != figures.end())
         {
@@ -815,7 +818,7 @@ public:
         figures.erase(id);
         drawTheBoard();
     }
-    
+
     void clear()
     {
         figures.clear();
@@ -826,10 +829,10 @@ public:
 
     void draw()const
     {
-        system("cls");       
-        board.print(); 
+        system("cls");
+        board.print();
     }
-    
+
     void list()const
     {
         for (const auto& figure : figures)
@@ -841,7 +844,7 @@ public:
     void seeColors()const
     {
         cout << "You can use these colors: blue, green, cyan, red, purple,\n" <<
-           "yellow, grey, bright - blue, bright - green, bright - cyan, bright - red, pink, bright - yellow, white.\n"<< 
+            "yellow, grey, bright - blue, bright - green, bright - cyan, bright - red, pink, bright - yellow, white.\n" <<
             "BTW: you can create figures without a color (like frames). " << endl;
     }
 
@@ -855,11 +858,11 @@ public:
         for (const auto& row : board.grid)
         {
             for (char c : row) {
-               
-               file << c;
-                
+
+                file << c;
+
             }
-            file << '\n';  
+            file << '\n';
         }
         file.close();
         cout << "The board was saved successfully!" << endl;
@@ -885,14 +888,14 @@ public:
             }
             for (int i = 0; i < WIDTH; i++)
             {
-               if (board.possible_board_symbols.find(line[i]) == board.possible_board_symbols.end())
-               {
+                if (board.possible_board_symbols.find(line[i]) == board.possible_board_symbols.end())
+                {
                     cout << "Incorrect symbols on the board!" << endl;
                     return;
-               }            
+                }
 
-                board.grid[line_count][i] = line[i];              
-            }    
+                board.grid[line_count][i] = line[i];
+            }
             line_count++;
         }
         file.close();
@@ -907,7 +910,7 @@ public:
             time_figures.erase(find(time_figures.begin(), time_figures.end(), id));
             drawTheBoard();
             removed_successfully = true;
-        } 
+        }
     }
 
     void selectByID(const string& id)
@@ -940,18 +943,19 @@ public:
         }
     }
 
-    void paint(const string&  color)
+    void paint(const string& color, const string& stucture)
     {
         selected_figure->setColor(color);
+        selected_figure->changeStructure(stucture);
         drawTheBoard();
         cout << "The selected figure became " << color << "!" << endl;
     }
-   
-    void move(const pair<int,int>& pointToMove)
+
+    void move(const pair<int, int>& pointToMove)
     {
         selected_figure->move(pointToMove);
         changeIDAndMakeForeground();
-        drawTheBoard();     
+        drawTheBoard();
         cout << "The selected figure was moved!" << endl;
     }
 
@@ -989,15 +993,15 @@ class UserInput
     string userInput;
     bool exit_flag = false;
     string previous_command = "";
-    unordered_set<string> commandsWithoutParam = { "help", "exit", "list", "shapes", "clear", "draw", "undo", "colors"};
-    
+    unordered_set<string> commandsWithoutParam = { "help", "exit", "list", "shapes", "clear", "draw", "undo", "colors" };
+
     bool checkForParameters(const istringstream& my_stream)const
     {
-         if (my_stream.eof())
-         {
-             cout << "This command does need parameters!" << endl;
-             return false;
-         }
+        if (my_stream.eof())
+        {
+            cout << "This command does need parameters!" << endl;
+            return false;
+        }
         return true;
     }
 
@@ -1005,7 +1009,7 @@ class UserInput
     {
         return all_of(data.begin(), data.end(), ::isdigit);
     }
-    
+
     void getShape(string& shape, istringstream& my_stream)
     {
         my_stream >> shape;
@@ -1013,13 +1017,13 @@ class UserInput
         {
             string add_word;
             my_stream >> add_word;
-            shape = shape + " " + add_word;           
-        }        
+            shape = shape + " " + add_word;
+        }
     }
 
     bool checkForParametersEnd(istringstream& my_stream)const
-    {    
-         return my_stream.eof();      
+    {
+        return my_stream.eof();
     }
 
     bool checkFigureWithThreeParam(istringstream& my_stream, int& x, int& y, int& radius)const
@@ -1028,17 +1032,17 @@ class UserInput
         {
             return checkForParametersEnd(my_stream);
 
-        }      
+        }
         return false;
     }
 
     bool checkTriangle(istringstream& my_stream, int& x1, int& y1, int& x2, int& y2, int& x3, int& y3)const
     {
-        if (my_stream >> x1 >> y1 >> x2 >> y2 >> x3 >> y3) 
+        if (my_stream >> x1 >> y1 >> x2 >> y2 >> x3 >> y3)
         {
             return checkForParametersEnd(my_stream);
         }
-        return false;  
+        return false;
     }
 
     bool checkFigureWithFourParam(istringstream& my_stream, int& x, int& y, int& sth1, int& sth2)
@@ -1050,7 +1054,7 @@ class UserInput
         return false;
     }
 
-    bool checkOneParam(istringstream& my_stream, int& value) const 
+    bool checkOneParam(istringstream& my_stream, int& value) const
     {
         if (my_stream >> value && value >= 0 && value < WIDTH)
         {
@@ -1060,21 +1064,21 @@ class UserInput
         return false;
     }
 
-    bool checkTwoParam(istringstream& my_stream, int& x, int& y) 
+    bool checkTwoParam(istringstream& my_stream, int& x, int& y)
     {
-        if (my_stream >> x >> y  && isWithinBounds(x,y))
+        if (my_stream >> x >> y && isWithinBounds(x, y))
         {
             return checkForParametersEnd(my_stream);
         }
         return false;
     }
 
-    bool isWithinBounds(int x, int y) 
+    bool isWithinBounds(int x, int y)
     {
         return x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT;
     }
 
-    void processCircle(istringstream& my_stream, const string& color)
+    void processCircle(istringstream& my_stream, const string& color, bool frame)
     {
         int x, y, radius;
         if (!checkFigureWithThreeParam(my_stream, x, y, radius) || !isWithinBounds(x, y) || radius < 0 || radius > WIDTH || radius > HEIGHT)
@@ -1082,20 +1086,20 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Circle>(make_pair(x, y), radius), color);
+        action.addFigure(make_shared<Circle>(make_pair(x, y), radius, frame), color);
     }
 
-    void processTriangle(istringstream& my_stream, const string& color)
+    void processTriangle(istringstream& my_stream, const string& color, bool frame)
     {
         int x1, y1, x2, y2, x3, y3;
         if (!checkTriangle(my_stream, x1, y1, x2, y2, x3, y3) || !isWithinBounds(x1, y1) || !isWithinBounds(x2, y2) || !isWithinBounds(x3, y3)) {
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Triangle>(make_pair(x1, y1), make_pair(x2, y2), make_pair(x3, y3)), color);
+        action.addFigure(make_shared<Triangle>(make_pair(x1, y1), make_pair(x2, y2), make_pair(x3, y3), frame), color);
     }
 
-    void processRectangle(istringstream& my_stream, const string& color)
+    void processRectangle(istringstream& my_stream, const string& color, bool frame)
     {
         int x, y, width, height;
         if (!checkFigureWithFourParam(my_stream, x, y, width, height) || !isWithinBounds(x, y) || !isWithinBounds(width, height))
@@ -1103,10 +1107,10 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Rectangle>(make_pair(x, y), width, height), color);
+        action.addFigure(make_shared<Rectangle>(make_pair(x, y), width, height, frame), color);
     }
 
-    void processSquare(istringstream& my_stream, const string& color)
+    void processSquare(istringstream& my_stream, const string& color, bool frame)
     {
         int x, y, side_length;
         if (!checkFigureWithThreeParam(my_stream, x, y, side_length) || !isWithinBounds(x, y) || side_length < 0 || side_length > WIDTH || side_length > HEIGHT)
@@ -1114,10 +1118,10 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Square>(make_pair(x, y), side_length), color);
+        action.addFigure(make_shared<Square>(make_pair(x, y), side_length, frame), color);
     }
 
-    void processPerfectTriangle(istringstream& my_stream, const string& color)
+    void processPerfectTriangle(istringstream& my_stream, const string& color, bool frame)
     {
         int x, y, height;
         if (!checkFigureWithThreeParam(my_stream, x, y, height) || !isWithinBounds(x, y) || height < 0 || height > HEIGHT)
@@ -1125,10 +1129,10 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<PerfectTriangle>(make_pair(x, y), height), color);
+        action.addFigure(make_shared<PerfectTriangle>(make_pair(x, y), height, frame), color);
     }
 
-    void processLine(istringstream& my_stream, const string& color)
+    void processLine(istringstream& my_stream, const string& color, bool frame)
     {
         int x1, y1, x2, y2;
         if (!checkFigureWithFourParam(my_stream, x1, y1, x2, y2) || !isWithinBounds(x1, y1) || !isWithinBounds(x2, y2)) {
@@ -1136,62 +1140,60 @@ class UserInput
             cout << "Incorrect parameters! Check 'shapes' command!" << endl;
             return;
         }
-        action.addFigure(make_shared<Line>(make_pair(x1, y1), make_pair(x2, y2)), color);
+        action.addFigure(make_shared<Line>(make_pair(x1, y1), make_pair(x2, y2), frame), color);
     }
 
-    bool getColorIfAny(istringstream& my_stream, string& color) const
+    bool getColorIAndStructure(istringstream& my_stream, string& color, bool& frame) const
     {
-        string fill_word;
-        my_stream >> fill_word;
-        if (fill_word == "fill")
+        string fword;
+        my_stream >> fword;
+        if (fword != "fill" && fword != "frame")
         {
-            my_stream >> color; 
-            return validateColor(color); 
+            cout << "Specify structure of the figure: FILL or FRAME!" << endl;
+            return false;
         }
-        for (int i = fill_word.length() - 1; i >= 0; --i) {
-            my_stream.putback(fill_word[i]);
-        }
-        color = "none"; 
-        return true; 
+        my_stream >> color;
+        fword == "fill" ? frame = false : frame = true;
+        return validateColor(color);
     }
 
     bool validateColor(const string& color) const
     {
-        return board.colors.find(color) != board.colors.end();      
+        return board.colors.find(color) != board.colors.end();
     }
-    
-    void processShape(istringstream& my_stream, const string& shape) 
+
+    void processShape(istringstream& my_stream, const string& shape)
     {
-        bool added_successfully = false;
+        bool frame = false;
         string color;
-        if (!getColorIfAny(my_stream, color))
+        if (!getColorIAndStructure(my_stream, color, frame))
         {
             cout << "This color is not available!" << endl;
             return;
-        }  
-        if (shape == "circle") 
-        {
-            processCircle(my_stream, color);
         }
-        else if (shape == "triangle") 
+        if (shape == "circle")
         {
-            processTriangle(my_stream, color);
+            processCircle(my_stream, color, frame);
         }
-        else if (shape == "rectangle") 
+        else if (shape == "triangle")
         {
-            processRectangle(my_stream, color);
+            processTriangle(my_stream, color, frame);
         }
-        else if (shape == "perfect triangle") 
+        else if (shape == "rectangle")
         {
-            processPerfectTriangle(my_stream, color);
+            processRectangle(my_stream, color, frame);
+        }
+        else if (shape == "perfect triangle")
+        {
+            processPerfectTriangle(my_stream, color, frame);
         }
         else if (shape == "line")
         {
-            processLine(my_stream, color);
+            processLine(my_stream, color, frame);
         }
         else if (shape == "square")
         {
-            processSquare(my_stream, color);
+            processSquare(my_stream, color, frame);
         }
         else {
             cout << "This shape is not available right now!" << endl;
@@ -1201,16 +1203,16 @@ class UserInput
 
     void checkReturnValue(istringstream& my_stream, string& value) const
     {
-        if (!checkForParameters(my_stream)) 
+        if (!checkForParameters(my_stream))
         {
             return;
         }
         my_stream >> value;
     }
 
-    void add(istringstream& my_stream) 
+    void add(istringstream& my_stream)
     {
-        if (!checkForParameters(my_stream)) 
+        if (!checkForParameters(my_stream))
         {
             return;
         }
@@ -1229,12 +1231,12 @@ class UserInput
         {
             cout << "This command already has enough parameters!" << endl;
             return;
-        }  
-        if(removed_successfully){ cout << "The figure was removed successully!" << endl; }
+        }
+        if (removed_successfully) { cout << "The figure was removed successully!" << endl; }
     }
 
     void move(istringstream& my_stream)
-    {      
+    {
         int x, y;
         if (!checkTwoParam(my_stream, x, y))
         {
@@ -1252,7 +1254,14 @@ class UserInput
         {
             return;
         }
-        action.paint(color);
+        string structure;
+        checkReturnValue(my_stream, structure);
+        if (structure != "fill" && structure != "frame")
+        {
+            cout << "Specify structure of the figure: FILL or FRAME!" << endl;
+            return;
+        }
+        action.paint(color, structure);
         if (!checkForParametersEnd(my_stream))
         {
             cout << "This command already has enough parameters!" << endl;
@@ -1287,24 +1296,24 @@ class UserInput
             cout << "Incorrect input!" << endl;
             return;
         }
-        !checkForParametersEnd(my_stream)? handleCoordinates(my_stream, value): action.selectByID(value);
+        !checkForParametersEnd(my_stream) ? handleCoordinates(my_stream, value) : action.selectByID(value);
     }
 
-    void loadOrSave(const string& command, istringstream& my_stream) 
+    void loadOrSave(const string& command, istringstream& my_stream)
     {
-        if (!checkForParameters(my_stream)) 
+        if (!checkForParameters(my_stream))
         {
             return;
         }
         string file_path;
         my_stream >> file_path;
 
-        if (!checkForParametersEnd(my_stream)) 
+        if (!checkForParametersEnd(my_stream))
         {
             cout << "This command already has enough parameters!" << endl;
             return;
         }
-        command == "load"? action.load(file_path): action.save(file_path);
+        command == "load" ? action.load(file_path) : action.save(file_path);
     }
 
     bool processFiguresWithOneParamForEdit(istringstream& my_stream, vector<int>& parameters)
@@ -1362,7 +1371,7 @@ class UserInput
         action.edit(parameters);
     }
 
-    void clearScreenAndPrompt() 
+    void clearScreenAndPrompt()
     {
         cout << "Press Enter to continue..." << endl;
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -1417,9 +1426,9 @@ class UserInput
             action.undo();
         }
         else if (command == "load" || command == "save")
-        {           
+        {
             loadOrSave(command, my_stream);
-        }    
+        }
         else if (command == "help")
         {
             action.help();
@@ -1461,7 +1470,7 @@ class UserInput
         userInput.clear();
     }
 
- public:
+public:
 
     UserInput()
     {
@@ -1478,4 +1487,3 @@ int main()
     UserInput userInput;
     return 0;
 }
- 
