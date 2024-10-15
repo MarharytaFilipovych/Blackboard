@@ -843,8 +843,7 @@ public:
     void seeColors()const
     {
         cout << "You can use these colors: blue, green, cyan, red, purple,\n" <<
-            "yellow, grey, bright - blue, bright - green, bright - cyan, bright - red, pink, bright - yellow, white.\n" <<
-            "BTW: you can create figures without a color (like frames). " << endl;
+            "yellow, grey, bright - blue, bright - green, bright - cyan, bright - red, pink, bright - yellow, white." << endl;
     }
 
     void save(const string& file_path)
@@ -947,7 +946,7 @@ public:
         selected_figure->setColor(color);
         selected_figure->changeStructure(stucture);
         drawTheBoard();
-        cout << "The selected figure became " << color << "!" << endl;
+        cout << "The selected figure became " << color << " and " << stucture <<"!" << endl;
     }
 
     void move(const pair<int, int>& pointToMove)
