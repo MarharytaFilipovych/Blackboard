@@ -84,6 +84,8 @@ private:
         c = '*';
         color_symbol(color_code);
         cout << c;
+        color_symbol(DEFAULT_COLOR_CODE);
+
     }
 
     void generatePossibleCharsOfColorCodes()
@@ -167,7 +169,10 @@ protected:
             if (e2 <= dx) { err += dx; y1 += sy; }
         }
     }
-
+    void setType(const string& new_type)
+    {
+        type = new_type;
+    }
     virtual ~Figure() = default;
 
 public:
@@ -188,11 +193,6 @@ public:
 
     virtual bool contains(const pair<int, int>& point) const = 0;
 
-
-    void setType(const string& new_type)
-    {
-        type = new_type;
-    }
 
     void setColor(const string& new_color)
     {
@@ -414,8 +414,8 @@ private:
 
     void findCenter()
     {
-        center.first = (coordinates[0].first + coordinates[1].first) / 2;
-        center.second = (coordinates[0].second + coordinates[1].second) / 2;
+        center.first = coordinates[0].first + (width / 2);
+        center.second = coordinates[0].second + (height / 2);
     }
 
     void drawFrame()const
@@ -489,8 +489,11 @@ protected:
 
     void move(const pair<int, int> move_point) override
     {
+        findCenter();
         center.first = move_point.first;
         center.second = move_point.second;
+        coordinates[0].first = center.first - (width / 2);
+        coordinates[0].second = center.second - (height / 2);
     }
 
 public:
@@ -843,7 +846,7 @@ public:
     void seeColors()const
     {
         cout << "You can use these colors: blue, green, cyan, red, purple,\n" <<
-            "yellow, grey, bright - blue, bright - green, bright - cyan, bright - red, pink, bright - yellow, white." << endl;
+            "yellow, grey, bright-blue, bright-green, bright-cyan, bright-red, pink, bright-yellow, white." << endl;
     }
 
     void save(const string& file_path)
